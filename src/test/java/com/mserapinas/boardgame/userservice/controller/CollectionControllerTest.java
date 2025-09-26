@@ -204,7 +204,7 @@ class CollectionControllerTest {
     @Test
     @DisplayName("Should return bad request when updating game without X-User-ID header")
     void shouldReturnBadRequestWhenUpdatingGameWithoutHeader() throws Exception {
-        Integer gameId = 1001;
+        int gameId = 1001;
         UpdateGameCollectionRequest request = new UpdateGameCollectionRequest(
             "Updated notes", Set.of("Updated")
         );
@@ -220,7 +220,7 @@ class CollectionControllerTest {
     @Test
     @DisplayName("Should return bad request when updating game with notes too long")
     void shouldReturnBadRequestWhenUpdatingGameWithNotesTooLong() throws Exception {
-        Integer gameId = 1001;
+        int gameId = 1001;
         String longNotes = "a".repeat(1001); // Exceeds 1000 character limit
         UpdateGameCollectionRequest invalidRequest = new UpdateGameCollectionRequest(
             longNotes, Set.of()
@@ -238,7 +238,7 @@ class CollectionControllerTest {
     @Test
     @DisplayName("Should return bad request when updating game with too many labels")
     void shouldReturnBadRequestWhenUpdatingGameWithTooManyLabels() throws Exception {
-        Integer gameId = 1001;
+        int gameId = 1001;
         Set<String> tooManyLabels = Set.of("1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11"); // Exceeds 10 label limit
         UpdateGameCollectionRequest invalidRequest = new UpdateGameCollectionRequest(
             "Notes", tooManyLabels
@@ -270,7 +270,7 @@ class CollectionControllerTest {
     @Test
     @DisplayName("Should return bad request when deleting game without X-User-ID header")
     void shouldReturnBadRequestWhenDeletingGameWithoutHeader() throws Exception {
-        Integer gameId = 1001;
+        int gameId = 1001;
 
         mockMvc.perform(delete(BASE_URL + "/games/" + gameId))
                 .andExpect(status().isBadRequest()); // Missing required header

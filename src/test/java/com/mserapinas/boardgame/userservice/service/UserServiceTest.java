@@ -107,8 +107,8 @@ class UserServiceTest {
 
         assertNotNull(result);
         assertEquals(1, result.games().size());
-        assertEquals(1001, result.games().get(0).gameId());
-        assertEquals("Test notes", result.games().get(0).notes());
+        assertEquals(1001, result.games().getFirst().gameId());
+        assertEquals("Test notes", result.games().getFirst().notes());
 
         verify(userRepository).existsById(TEST_USER_ID);
         verify(userBoardGameRepository).findByUserIdWithLabels(TEST_USER_ID);
