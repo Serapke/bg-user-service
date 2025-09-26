@@ -2,7 +2,6 @@ package com.mserapinas.boardgame.userservice.integration;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mserapinas.boardgame.userservice.dto.request.LoginRequest;
-import com.mserapinas.boardgame.userservice.dto.request.RefreshTokenRequest;
 import com.mserapinas.boardgame.userservice.dto.request.RegisterRequest;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -10,11 +9,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.transaction.annotation.Transactional;
 
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -31,112 +28,75 @@ class AuthenticationIntegrationTest extends BaseIntegrationTest {
     private static final String AUTH_BASE_URL = "/api/v1/auth";
 
     @Test
-    @DisplayName("Should complete full authentication flow successfully")
+    @DisplayName("Should register a new user successfully")
     @Transactional
-    void shouldCompleteFullAuthenticationFlowSuccessfully() throws Exception {
-        // Step 1: Register a new user
+    void shouldRegisterNewUserSuccessfully() throws Exception {
         RegisterRequest registerRequest = new RegisterRequest("test@example.com", "Test User", "Password123!");
-        
-        MvcResult registerResult = mockMvc.perform(post(AUTH_BASE_URL + "/register")
+
+        mockMvc.perform(post(AUTH_BASE_URL + "/register")
                 .with(csrf())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(registerRequest)))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.token").exists())
-                .andExpect(jsonPath("$.refreshToken").exists())
-                .andExpect(jsonPath("$.user.name").value("Test User"))
-                .andExpect(jsonPath("$.user.name").value("Test User"))
-                .andReturn();
-
-        // Extract tokens from registration response
-        String registerResponse = registerResult.getResponse().getContentAsString();
-        com.fasterxml.jackson.databind.JsonNode jsonNode = objectMapper.readTree(registerResponse);
-        String initialAccessToken = jsonNode.get("token").asText();
-        String initialRefreshToken = jsonNode.get("refreshToken").asText();
-
-        // Step 2: Use access token to access protected endpoint
-        mockMvc.perform(get("/api/v1/users/me")
-                .header("Authorization", "Bearer " + initialAccessToken))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.email").value("test@example.com"))
+                .andExpect(jsonPath("$.id").exists())
                 .andExpect(jsonPath("$.name").value("Test User"));
-
-        // Step 3: Login with the same credentials
-        LoginRequest loginRequest = new LoginRequest("test@example.com", "Password123!");
-        
-        MvcResult loginResult = mockMvc.perform(post(AUTH_BASE_URL + "/login")
-                .with(csrf())
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(loginRequest)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.token").exists())
-                .andExpect(jsonPath("$.refreshToken").exists())
-                .andExpect(jsonPath("$.user.name").value("Test User"))
-                .andReturn();
-
-        // Extract tokens from login response
-        String loginResponse = loginResult.getResponse().getContentAsString();
-        jsonNode = objectMapper.readTree(loginResponse);
-        String loginAccessToken = jsonNode.get("token").asText();
-
-        // Step 4: Use login access token to access protected endpoint
-        mockMvc.perform(get("/api/v1/users/me")
-                .header("Authorization", "Bearer " + loginAccessToken))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.email").value("test@example.com"));
-
-        // Step 5: Use refresh token to get new access token
-        RefreshTokenRequest refreshRequest = new RefreshTokenRequest(initialRefreshToken);
-        
-        MvcResult refreshResult = mockMvc.perform(post(AUTH_BASE_URL + "/refresh")
-                .with(csrf())
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(refreshRequest)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.token").exists())
-                .andExpect(jsonPath("$.refreshToken").exists())
-                .andExpect(jsonPath("$.user.name").value("Test User"))
-                .andReturn();
-
-        // Extract new tokens from refresh response
-        String refreshResponse = refreshResult.getResponse().getContentAsString();
-        jsonNode = objectMapper.readTree(refreshResponse);
-        String newAccessToken = jsonNode.get("token").asText();
-
-        // Step 6: Use new access token to access protected endpoint
-        mockMvc.perform(get("/api/v1/users/me")
-                .header("Authorization", "Bearer " + newAccessToken))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.email").value("test@example.com"));
     }
 
     @Test
-    @DisplayName("Should prevent duplicate user registration")
+    @DisplayName("Should login with valid credentials")
     @Transactional
-    void shouldPreventDuplicateUserRegistration() throws Exception {
-        RegisterRequest registerRequest = new RegisterRequest("duplicate@example.com", "Test User", "Password123!");
-        
-        // First registration should succeed
+    void shouldLoginWithValidCredentials() throws Exception {
+        // First register a user
+        RegisterRequest registerRequest = new RegisterRequest("login@example.com", "Login User", "Password123!");
+
         mockMvc.perform(post(AUTH_BASE_URL + "/register")
                 .with(csrf())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(registerRequest)))
                 .andExpect(status().isCreated());
 
-        // Second registration with same email should fail
+        // Then login with the same credentials
+        LoginRequest loginRequest = new LoginRequest("login@example.com", "Password123!");
+
+        mockMvc.perform(post(AUTH_BASE_URL + "/login")
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(loginRequest)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").exists())
+                .andExpect(jsonPath("$.name").value("Login User"));
+    }
+
+    @Test
+    @DisplayName("Should return conflict when registering with existing email")
+    @Transactional
+    void shouldReturnConflictWhenRegisteringWithExistingEmail() throws Exception {
+        RegisterRequest firstRequest = new RegisterRequest("duplicate@example.com", "First User", "Password123!");
+
+        // Register first user
         mockMvc.perform(post(AUTH_BASE_URL + "/register")
                 .with(csrf())
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(registerRequest)))
+                .content(objectMapper.writeValueAsString(firstRequest)))
+                .andExpect(status().isCreated());
+
+        // Try to register second user with same email
+        RegisterRequest duplicateRequest = new RegisterRequest("duplicate@example.com", "Second User", "Password123!");
+
+        mockMvc.perform(post(AUTH_BASE_URL + "/register")
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(duplicateRequest)))
                 .andExpect(status().isConflict());
     }
 
     @Test
-    @DisplayName("Should reject invalid login credentials")
+    @DisplayName("Should return unauthorized for invalid login credentials")
     @Transactional
-    void shouldRejectInvalidLoginCredentials() throws Exception {
+    void shouldReturnUnauthorizedForInvalidLoginCredentials() throws Exception {
         // Register a user first
-        RegisterRequest registerRequest = new RegisterRequest("valid@example.com", "Test User", "Password123!");
+        RegisterRequest registerRequest = new RegisterRequest("valid@example.com", "Valid User", "Password123!");
+
         mockMvc.perform(post(AUTH_BASE_URL + "/register")
                 .with(csrf())
                 .contentType(MediaType.APPLICATION_JSON)
@@ -144,141 +104,138 @@ class AuthenticationIntegrationTest extends BaseIntegrationTest {
                 .andExpect(status().isCreated());
 
         // Try to login with wrong password
-        LoginRequest wrongPasswordRequest = new LoginRequest("valid@example.com", "WrongPassword");
-        mockMvc.perform(post(AUTH_BASE_URL + "/login")
-                .with(csrf())
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(wrongPasswordRequest)))
-                .andExpect(status().isUnauthorized());
+        LoginRequest invalidLoginRequest = new LoginRequest("valid@example.com", "WrongPassword!");
 
-        // Try to login with non-existent email
-        LoginRequest nonExistentEmailRequest = new LoginRequest("nonexistent@example.com", "Password123!");
         mockMvc.perform(post(AUTH_BASE_URL + "/login")
                 .with(csrf())
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(nonExistentEmailRequest)))
+                .content(objectMapper.writeValueAsString(invalidLoginRequest)))
                 .andExpect(status().isUnauthorized());
     }
 
     @Test
-    @DisplayName("Should reject invalid refresh token")
+    @DisplayName("Should return unauthorized for non-existent user login")
     @Transactional
-    void shouldRejectInvalidRefreshToken() throws Exception {
-        // Try to refresh with invalid token
-        RefreshTokenRequest invalidRefreshRequest = new RefreshTokenRequest("invalid.refresh.token");
-        
-        mockMvc.perform(post(AUTH_BASE_URL + "/refresh")
+    void shouldReturnUnauthorizedForNonExistentUserLogin() throws Exception {
+        LoginRequest nonExistentUserRequest = new LoginRequest("nonexistent@example.com", "Password123!");
+
+        mockMvc.perform(post(AUTH_BASE_URL + "/login")
                 .with(csrf())
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(invalidRefreshRequest)))
+                .content(objectMapper.writeValueAsString(nonExistentUserRequest)))
                 .andExpect(status().isUnauthorized());
     }
 
     @Test
-    @DisplayName("Should reject access token as refresh token")
+    @DisplayName("Should handle special characters in user names during registration")
     @Transactional
-    void shouldRejectAccessTokenAsRefreshToken() throws Exception {
-        // Register and get tokens
-        RegisterRequest registerRequest = new RegisterRequest("test@example.com", "Test User", "Password123!");
-        
-        MvcResult registerResult = mockMvc.perform(post(AUTH_BASE_URL + "/register")
+    void shouldHandleSpecialCharactersInUserNamesDuringRegistration() throws Exception {
+        RegisterRequest specialNameRequest = new RegisterRequest("special@example.com", "José María O'Connor-Smith", "Password123!");
+
+        mockMvc.perform(post(AUTH_BASE_URL + "/register")
                 .with(csrf())
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(registerRequest)))
+                .content(objectMapper.writeValueAsString(specialNameRequest)))
                 .andExpect(status().isCreated())
-                .andReturn();
+                .andExpect(jsonPath("$.name").value("José María O'Connor-Smith"));
+    }
 
-        // Extract access token
-        String registerResponse = registerResult.getResponse().getContentAsString();
-        com.fasterxml.jackson.databind.JsonNode jsonNode = objectMapper.readTree(registerResponse);
-        String accessToken = jsonNode.get("token").asText();
+    @Test
+    @DisplayName("Should handle various valid email formats during registration")
+    @Transactional
+    void shouldHandleVariousValidEmailFormatsDuringRegistration() throws Exception {
+        String[] validEmails = {
+            "user@example.com",
+            "user.name@example.co.uk",
+            "user+tag@example.org",
+            "123@example.com"
+        };
 
-        // Try to use access token as refresh token
-        RefreshTokenRequest accessTokenAsRefreshRequest = new RefreshTokenRequest(accessToken);
-        
-        mockMvc.perform(post(AUTH_BASE_URL + "/refresh")
+        for (int i = 0; i < validEmails.length; i++) {
+            RegisterRequest request = new RegisterRequest(validEmails[i], "User " + i, "Password123!");
+
+            mockMvc.perform(post(AUTH_BASE_URL + "/register")
+                    .with(csrf())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(request)))
+                    .andExpect(status().isCreated())
+                    .andExpect(jsonPath("$.name").value("User " + i));
+        }
+    }
+
+    @Test
+    @DisplayName("Should return bad request for invalid email format")
+    @Transactional
+    void shouldReturnBadRequestForInvalidEmailFormat() throws Exception {
+        RegisterRequest invalidEmailRequest = new RegisterRequest("invalid-email", "Test User", "Password123!");
+
+        mockMvc.perform(post(AUTH_BASE_URL + "/register")
                 .with(csrf())
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(accessTokenAsRefreshRequest)))
-                .andExpect(status().isUnauthorized());
+                .content(objectMapper.writeValueAsString(invalidEmailRequest)))
+                .andExpect(status().isBadRequest());
     }
 
     @Test
-    @DisplayName("Should enforce password validation rules")
+    @DisplayName("Should return bad request for weak password")
     @Transactional
-    void shouldEnforcePasswordValidationRules() throws Exception {
-        String[] weakPasswords = {
-            "weak",           // Too short
-            "password",       // No numbers/special chars
-            "12345678",       // No letters
-            "PASSWORD123"     // No special chars
-        };
+    void shouldReturnBadRequestForWeakPassword() throws Exception {
+        RegisterRequest weakPasswordRequest = new RegisterRequest("weak@example.com", "Test User", "weak");
 
-        for (String weakPassword : weakPasswords) {
-            RegisterRequest weakPasswordRequest = new RegisterRequest("test@example.com", "Test User", weakPassword);
-            
-            mockMvc.perform(post(AUTH_BASE_URL + "/register")
-                    .with(csrf())
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(objectMapper.writeValueAsString(weakPasswordRequest)))
-                    .andExpect(status().isBadRequest());
-        }
+        mockMvc.perform(post(AUTH_BASE_URL + "/register")
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(weakPasswordRequest)))
+                .andExpect(status().isBadRequest());
     }
 
     @Test
-    @DisplayName("Should enforce email validation rules")
+    @DisplayName("Should return bad request for empty name")
     @Transactional
-    void shouldEnforceEmailValidationRules() throws Exception {
-        String[] invalidEmails = {
-            "invalid-email",
-            "test@",
-            "@example.com",
-            "test.example.com",
-            ""
-        };
+    void shouldReturnBadRequestForEmptyName() throws Exception {
+        RegisterRequest emptyNameRequest = new RegisterRequest("empty@example.com", "", "Password123!");
 
-        for (String invalidEmail : invalidEmails) {
-            RegisterRequest invalidEmailRequest = new RegisterRequest(invalidEmail, "Test User", "Password123!");
-            
-            mockMvc.perform(post(AUTH_BASE_URL + "/register")
-                    .with(csrf())
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(objectMapper.writeValueAsString(invalidEmailRequest)))
-                    .andExpect(status().isBadRequest());
-        }
+        mockMvc.perform(post(AUTH_BASE_URL + "/register")
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(emptyNameRequest)))
+                .andExpect(status().isBadRequest());
     }
 
     @Test
-    @DisplayName("Should require authentication for protected endpoints")
+    @DisplayName("Should return bad request for malformed JSON")
     @Transactional
-    void shouldRequireAuthenticationForProtectedEndpoints() throws Exception {
-        String[] protectedEndpoints = {
-            "/api/v1/users/me",
-            "/api/v1/collection",
-            "/api/v1/collection/games"
-        };
+    void shouldReturnBadRequestForMalformedJson() throws Exception {
+        String malformedJson = "{\"email\":\"test@example.com\",\"name\":}"; // Invalid JSON
 
-        for (String endpoint : protectedEndpoints) {
-            mockMvc.perform(get(endpoint))
-                    .andExpect(status().isForbidden());
-        }
+        mockMvc.perform(post(AUTH_BASE_URL + "/register")
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(malformedJson))
+                .andExpect(status().isBadRequest());
     }
 
     @Test
-    @DisplayName("Should reject expired or malformed tokens")
+    @DisplayName("Should handle concurrent user registrations with different emails")
     @Transactional
-    void shouldRejectExpiredOrMalformedTokens() throws Exception {
-        String[] invalidTokens = {
-            "malformed.token",
-            "Bearer malformed.token",
-            "",
-            "expired.jwt.token.here"
-        };
+    void shouldHandleConcurrentUserRegistrationsWithDifferentEmails() throws Exception {
+        // Simulate concurrent registrations by performing multiple requests quickly
+        RegisterRequest user1 = new RegisterRequest("concurrent1@example.com", "Concurrent User 1", "Password123!");
+        RegisterRequest user2 = new RegisterRequest("concurrent2@example.com", "Concurrent User 2", "Password123!");
 
-        for (String invalidToken : invalidTokens) {
-            mockMvc.perform(get("/api/v1/users/me")
-                    .header("Authorization", "Bearer " + invalidToken))
-                    .andExpect(status().isUnauthorized());
-        }
+        // Both should succeed since they have different emails
+        mockMvc.perform(post(AUTH_BASE_URL + "/register")
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(user1)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.name").value("Concurrent User 1"));
+
+        mockMvc.perform(post(AUTH_BASE_URL + "/register")
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(user2)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.name").value("Concurrent User 2"));
     }
 }

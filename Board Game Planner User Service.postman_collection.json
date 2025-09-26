@@ -2,18 +2,8 @@
 	"info": {
 		"_postman_id": "board-game-planner-user-service",
 		"name": "Board Game Planner User Service",
-		"description": "API collection for the Board Game Planner User Service including authentication and user management endpoints",
+		"description": "API collection for the Board Game Planner User Service. Authentication is handled by API Gateway via X-User-ID header.",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
-	},
-	"auth": {
-		"type": "bearer",
-		"bearer": [
-			{
-				"key": "token",
-				"value": "{{access_token}}",
-				"type": "string"
-			}
-		]
 	},
 	"variable": [
 		{
@@ -22,13 +12,8 @@
 			"type": "string"
 		},
 		{
-			"key": "access_token",
-			"value": "",
-			"type": "string"
-		},
-		{
-			"key": "refresh_token",
-			"value": "",
+			"key": "user_id",
+			"value": "1",
 			"type": "string"
 		}
 	],
@@ -45,9 +30,8 @@
 								"exec": [
 									"if (pm.response.code === 201) {",
 									"    const response = pm.response.json();",
-									"    pm.collectionVariables.set('access_token', response.token);",
-									"    pm.collectionVariables.set('refresh_token', response.refreshToken);",
-									"    console.log('Tokens saved automatically');",
+									"    pm.collectionVariables.set('user_id', response.id);",
+									"    console.log('User ID saved automatically: ' + response.id);",
 									"}"
 								],
 								"type": "text/javascript"
@@ -81,7 +65,7 @@
 								"register"
 							]
 						},
-						"description": "Register a new user account. Automatically saves the returned tokens to collection variables."
+						"description": "Register a new user account. Automatically saves the user ID to collection variables."
 					},
 					"response": [
 						{
@@ -121,7 +105,7 @@
 								}
 							],
 							"cookie": [],
-							"body": "{\n    \"token\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\",\n    \"refreshToken\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\",\n    \"expiresAt\": \"2024-12-20T10:30:00Z\",\n    \"refreshExpiresAt\": \"2024-12-27T09:30:00Z\",\n    \"user\": {\n        \"id\": 1,\n        \"email\": \"john.doe@example.com\",\n        \"name\": \"John Doe\"\n    }\n}"
+							"body": "{\n    \"id\": 1,\n    \"name\": \"John Doe\"\n}"
 						}
 					]
 				},
@@ -134,9 +118,8 @@
 								"exec": [
 									"if (pm.response.code === 200) {",
 									"    const response = pm.response.json();",
-									"    pm.collectionVariables.set('access_token', response.token);",
-									"    pm.collectionVariables.set('refresh_token', response.refreshToken);",
-									"    console.log('Tokens saved automatically');",
+									"    pm.collectionVariables.set('user_id', response.id);",
+									"    console.log('User ID saved automatically: ' + response.id);",
 									"}"
 								],
 								"type": "text/javascript"
@@ -170,7 +153,7 @@
 								"login"
 							]
 						},
-						"description": "Login with existing user credentials. Automatically saves the returned tokens to collection variables."
+						"description": "Login with existing user credentials. Returns user data only - authentication is handled by API Gateway."
 					},
 					"response": [
 						{
@@ -210,140 +193,12 @@
 								}
 							],
 							"cookie": [],
-							"body": "{\n    \"token\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\",\n    \"refreshToken\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\",\n    \"expiresAt\": \"2024-12-20T10:30:00Z\",\n    \"refreshExpiresAt\": \"2024-12-27T09:30:00Z\",\n    \"user\": {\n        \"id\": 1,\n        \"email\": \"alice@example.com\",\n        \"name\": \"Alice Johnson\"\n    }\n}"
-						}
-					]
-				},
-				{
-					"name": "Refresh Token",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"if (pm.response.code === 200) {",
-									"    const response = pm.response.json();",
-									"    pm.collectionVariables.set('access_token', response.token);",
-									"    pm.collectionVariables.set('refresh_token', response.refreshToken);",
-									"    console.log('Tokens refreshed and saved automatically');",
-									"}"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"auth": {
-							"type": "noauth"
-						},
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"refreshToken\": \"{{refresh_token}}\"\n}"
-						},
-						"url": {
-							"raw": "{{base_url}}/api/v1/auth/refresh",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"api",
-								"v1",
-								"auth",
-								"refresh"
-							]
-						},
-						"description": "Refresh access token using the refresh token. Automatically updates the saved tokens."
-					},
-					"response": [
-						{
-							"name": "Successful Token Refresh",
-							"originalRequest": {
-								"method": "POST",
-								"header": [
-									{
-										"key": "Content-Type",
-										"value": "application/json"
-									}
-								],
-								"body": {
-									"mode": "raw",
-									"raw": "{\n    \"refreshToken\": \"{{refresh_token}}\"\n}"
-								},
-								"url": {
-									"raw": "{{base_url}}/api/v1/auth/refresh",
-									"host": [
-										"{{base_url}}"
-									],
-									"path": [
-										"api",
-										"v1",
-										"auth",
-										"refresh"
-									]
-								}
-							},
-							"status": "OK",
-							"code": 200,
-							"_postman_previewlanguage": "json",
-							"header": [
-								{
-									"key": "Content-Type",
-									"value": "application/json"
-								}
-							],
-							"cookie": [],
-							"body": "{\n    \"token\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\",\n    \"refreshToken\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\",\n    \"expiresAt\": \"2024-12-20T11:30:00Z\",\n    \"refreshExpiresAt\": \"2024-12-27T10:30:00Z\",\n    \"user\": {\n        \"id\": 1,\n        \"email\": \"alice@example.com\",\n        \"name\": \"Alice Johnson\"\n    }\n}"
-						},
-						{
-							"name": "Invalid Refresh Token",
-							"originalRequest": {
-								"method": "POST",
-								"header": [
-									{
-										"key": "Content-Type",
-										"value": "application/json"
-									}
-								],
-								"body": {
-									"mode": "raw",
-									"raw": "{\n    \"refreshToken\": \"invalid_token\"\n}"
-								},
-								"url": {
-									"raw": "{{base_url}}/api/v1/auth/refresh",
-									"host": [
-										"{{base_url}}"
-									],
-									"path": [
-										"api",
-										"v1",
-										"auth",
-										"refresh"
-									]
-								}
-							},
-							"status": "Unauthorized",
-							"code": 401,
-							"_postman_previewlanguage": "json",
-							"header": [
-								{
-									"key": "Content-Type",
-									"value": "application/json"
-								}
-							],
-							"cookie": [],
-							"body": "{\n    \"error\": \"Invalid email or password\"\n}"
+							"body": "{\n    \"id\": 1,\n    \"name\": \"Alice Johnson\"\n}"
 						}
 					]
 				}
 			],
-			"description": "Authentication endpoints for user registration, login, and token refresh"
+			"description": "Authentication endpoints for user registration and login"
 		},
 		{
 			"name": "User Context",
@@ -352,7 +207,13 @@
 					"name": "Get Current User",
 					"request": {
 						"method": "GET",
-						"header": [],
+						"header": [
+							{
+								"key": "X-User-ID",
+								"value": "{{user_id}}",
+								"type": "text"
+							}
+						],
 						"url": {
 							"raw": "{{base_url}}/api/v1/users/me",
 							"host": [
@@ -365,7 +226,7 @@
 								"me"
 							]
 						},
-						"description": "Get profile information about the currently authenticated user including id, email, name, and creation date."
+						"description": "Get profile information about the current user. Requires X-User-ID header."
 					},
 					"response": [
 						{
@@ -374,8 +235,8 @@
 								"method": "GET",
 								"header": [
 									{
-										"key": "Authorization",
-										"value": "Bearer {{access_token}}"
+										"key": "X-User-ID",
+										"value": "1"
 									}
 								],
 								"url": {
@@ -401,7 +262,7 @@
 								}
 							],
 							"cookie": [],
-							"body": "{\n    \"id\": 1,\n    \"email\": \"alice@example.com\",\n    \"name\": \"Alice Johnson\",\n    \"createdAt\": \"2024-12-20T08:30:00Z\"\n}"
+							"body": "{\n    \"id\": 1,\n    \"name\": \"Alice Johnson\",\n    \"createdAt\": \"2024-12-20T08:30:00Z\"\n}"
 						},
 						{
 							"name": "Unauthorized",
@@ -438,6 +299,11 @@
 							{
 								"key": "Content-Type",
 								"value": "application/json"
+							},
+							{
+								"key": "X-User-ID",
+								"value": "{{user_id}}",
+								"type": "text"
 							}
 						],
 						"body": {
@@ -456,7 +322,7 @@
 								"me"
 							]
 						},
-						"description": "Update the current user's profile. Currently only allows updating the name field."
+						"description": "Update the current user's profile. Currently only allows updating the name field. Requires X-User-ID header."
 					},
 					"response": [
 						{
@@ -469,8 +335,8 @@
 										"value": "application/json"
 									},
 									{
-										"key": "Authorization",
-										"value": "Bearer {{access_token}}"
+										"key": "X-User-ID",
+										"value": "1"
 									}
 								],
 								"body": {
@@ -500,84 +366,7 @@
 								}
 							],
 							"cookie": [],
-							"body": "{\n    \"id\": 1,\n    \"email\": \"alice@example.com\",\n    \"name\": \"Updated Name\",\n    \"createdAt\": \"2024-12-20T08:30:00Z\"\n}"
-						},
-						{
-							"name": "Validation Error - Name Required",
-							"originalRequest": {
-								"method": "PUT",
-								"header": [
-									{
-										"key": "Content-Type",
-										"value": "application/json"
-									},
-									{
-										"key": "Authorization",
-										"value": "Bearer {{access_token}}"
-									}
-								],
-								"body": {
-									"mode": "raw",
-									"raw": "{\n    \"name\": \"\"\n}"
-								},
-								"url": {
-									"raw": "{{base_url}}/api/v1/users/me",
-									"host": [
-										"{{base_url}}"
-									],
-									"path": [
-										"api",
-										"v1",
-										"users",
-										"me"
-									]
-								}
-							},
-							"status": "Bad Request",
-							"code": 400,
-							"_postman_previewlanguage": "json",
-							"header": [
-								{
-									"key": "Content-Type",
-									"value": "application/json"
-								}
-							],
-							"cookie": [],
-							"body": "{\n    \"name\": \"Name is required\"\n}"
-						},
-						{
-							"name": "Unauthorized - No Token",
-							"originalRequest": {
-								"method": "PUT",
-								"header": [
-									{
-										"key": "Content-Type",
-										"value": "application/json"
-									}
-								],
-								"body": {
-									"mode": "raw",
-									"raw": "{\n    \"name\": \"Updated Name\"\n}"
-								},
-								"url": {
-									"raw": "{{base_url}}/api/v1/users/me",
-									"host": [
-										"{{base_url}}"
-									],
-									"path": [
-										"api",
-										"v1",
-										"users",
-										"me"
-									]
-								}
-							},
-							"status": "Unauthorized",
-							"code": 401,
-							"_postman_previewlanguage": "text",
-							"header": [],
-							"cookie": [],
-							"body": ""
+							"body": "{\n    \"id\": 1,\n    \"name\": \"Updated Name\",\n    \"createdAt\": \"2024-12-20T08:30:00Z\"\n}"
 						}
 					]
 				},
@@ -585,7 +374,13 @@
 					"name": "Delete Current User Account",
 					"request": {
 						"method": "DELETE",
-						"header": [],
+						"header": [
+							{
+								"key": "X-User-ID",
+								"value": "{{user_id}}",
+								"type": "text"
+							}
+						],
 						"url": {
 							"raw": "{{base_url}}/api/v1/users/me",
 							"host": [
@@ -598,7 +393,7 @@
 								"me"
 							]
 						},
-						"description": "Delete the currently authenticated user's account. Requires authentication. This action is irreversible and will delete all user data including board games and labels."
+						"description": "Delete the current user's account. Requires X-User-ID header. This action is irreversible and will delete all user data including board games and labels."
 					},
 					"response": [
 						{
@@ -607,8 +402,8 @@
 								"method": "DELETE",
 								"header": [
 									{
-										"key": "Authorization",
-										"value": "Bearer {{access_token}}"
+										"key": "X-User-ID",
+										"value": "1"
 									}
 								],
 								"url": {
@@ -630,36 +425,11 @@
 							"header": [],
 							"cookie": [],
 							"body": ""
-						},
-						{
-							"name": "Unauthorized - No Token",
-							"originalRequest": {
-								"method": "DELETE",
-								"header": [],
-								"url": {
-									"raw": "{{base_url}}/api/v1/users/me",
-									"host": [
-										"{{base_url}}"
-									],
-									"path": [
-										"api",
-										"v1",
-										"users",
-										"me"
-									]
-								}
-							},
-							"status": "Unauthorized",
-							"code": 401,
-							"_postman_previewlanguage": "text",
-							"header": [],
-							"cookie": [],
-							"body": ""
 						}
 					]
 				}
 			],
-			"description": "Endpoints for accessing information about the currently authenticated user and account management"
+			"description": "Endpoints for accessing information about the current user and account management using X-User-ID header"
 		},
 		{
 			"name": "Game Collection",
@@ -668,9 +438,15 @@
 					"name": "Get Current User Game Collection",
 					"request": {
 						"method": "GET",
-						"header": [],
+						"header": [
+							{
+								"key": "X-User-ID",
+								"value": "{{user_id}}",
+								"type": "text"
+							}
+						],
 						"url": {
-							"raw": "{{base_url}}/api/v1/collection",
+							"raw": "{{base_url}}/api/v1/collections",
 							"host": [
 								"{{base_url}}"
 							],
@@ -680,7 +456,7 @@
 								"collection"
 							]
 						},
-						"description": "Get the board game collection for the currently authenticated user, including game details, notes, labels, and modification dates."
+						"description": "Get the board game collection for the current user, including game details, notes, labels, and modification dates. Requires X-User-ID header."
 					},
 					"response": [
 						{
@@ -689,12 +465,12 @@
 								"method": "GET",
 								"header": [
 									{
-										"key": "Authorization",
-										"value": "Bearer {{access_token}}"
+										"key": "X-User-ID",
+										"value": "1"
 									}
 								],
 								"url": {
-									"raw": "{{base_url}}/api/v1/collection",
+									"raw": "{{base_url}}/api/v1/collections",
 									"host": [
 										"{{base_url}}"
 									],
@@ -715,65 +491,7 @@
 								}
 							],
 							"cookie": [],
-							"body": "{\n    \"games\": [\n        {\n            \"id\": 1,\n            \"gameId\": 1001,\n            \"notes\": \"Owned\",\n            \"modifiedAt\": \"2024-12-20T10:30:00Z\",\n            \"labels\": [\n                {\n                    \"id\": 1,\n                    \"name\": \"Strategy\"\n                },\n                {\n                    \"id\": 2,\n                    \"name\": \"Family\"\n                }\n            ]\n        },\n        {\n            \"id\": 2,\n            \"gameId\": 1002,\n            \"notes\": \"Legacy S1 complete\",\n            \"modifiedAt\": \"2024-12-19T15:45:00Z\",\n            \"labels\": [\n                {\n                    \"id\": 3,\n                    \"name\": \"Co-op\"\n                }\n            ]\n        }\n    ]\n}"
-						},
-						{
-							"name": "Empty Collection",
-							"originalRequest": {
-								"method": "GET",
-								"header": [
-									{
-										"key": "Authorization",
-										"value": "Bearer {{access_token}}"
-									}
-								],
-								"url": {
-									"raw": "{{base_url}}/api/v1/collection",
-									"host": [
-										"{{base_url}}"
-									],
-									"path": [
-										"api",
-										"v1",
-										"collection"
-									]
-								}
-							},
-							"status": "OK",
-							"code": 200,
-							"_postman_previewlanguage": "json",
-							"header": [
-								{
-									"key": "Content-Type",
-									"value": "application/json"
-								}
-							],
-							"cookie": [],
-							"body": "{\n    \"games\": []\n}"
-						},
-						{
-							"name": "Unauthorized - No Token",
-							"originalRequest": {
-								"method": "GET",
-								"header": [],
-								"url": {
-									"raw": "{{base_url}}/api/v1/collection",
-									"host": [
-										"{{base_url}}"
-									],
-									"path": [
-										"api",
-										"v1",
-										"collection"
-									]
-								}
-							},
-							"status": "Unauthorized",
-							"code": 401,
-							"_postman_previewlanguage": "text",
-							"header": [],
-							"cookie": [],
-							"body": ""
+							"body": "{\n    \"games\": [\n        {\n            \"id\": 1,\n            \"gameId\": 1001,\n            \"notes\": \"Owned\",\n            \"modifiedAt\": \"2024-12-20T10:30:00Z\",\n            \"labels\": [\n                {\n                    \"id\": 1,\n                    \"name\": \"Strategy\"\n                },\n                {\n                    \"id\": 2,\n                    \"name\": \"Family\"\n                }\n            ]\n        }\n    ]\n}"
 						}
 					]
 				},
@@ -785,6 +503,11 @@
 							{
 								"key": "Content-Type",
 								"value": "application/json"
+							},
+							{
+								"key": "X-User-ID",
+								"value": "{{user_id}}",
+								"type": "text"
 							}
 						],
 						"body": {
@@ -792,7 +515,7 @@
 							"raw": "{\n    \"gameId\": 1003,\n    \"notes\": \"Wishlist item\",\n    \"labelNames\": [\"Strategy\", \"Wishlist\"]\n}"
 						},
 						"url": {
-							"raw": "{{base_url}}/api/v1/collection/games",
+							"raw": "{{base_url}}/api/v1/collections/games",
 							"host": [
 								"{{base_url}}"
 							],
@@ -803,7 +526,7 @@
 								"games"
 							]
 						},
-						"description": "Add a new board game to the current user's collection with optional labels. Requires authentication. Labels will be created if they don't exist."
+						"description": "Add a new board game to the current user's collection with optional labels. Requires X-User-ID header. Labels will be created if they don't exist."
 					},
 					"response": [
 						{
@@ -816,8 +539,8 @@
 										"value": "application/json"
 									},
 									{
-										"key": "Authorization",
-										"value": "Bearer {{access_token}}"
+										"key": "X-User-ID",
+										"value": "1"
 									}
 								],
 								"body": {
@@ -825,7 +548,7 @@
 									"raw": "{\n    \"gameId\": 1003,\n    \"notes\": \"Wishlist item\",\n    \"labelNames\": [\"Strategy\", \"Wishlist\"]\n}"
 								},
 								"url": {
-									"raw": "{{base_url}}/api/v1/collection/games",
+									"raw": "{{base_url}}/api/v1/collections/games",
 									"host": [
 										"{{base_url}}"
 									],
@@ -848,126 +571,6 @@
 							],
 							"cookie": [],
 							"body": "{\n    \"id\": 3,\n    \"gameId\": 1003,\n    \"notes\": \"Wishlist item\",\n    \"modifiedAt\": \"2024-12-20T14:30:00Z\",\n    \"labels\": [\n        {\n            \"id\": 4,\n            \"name\": \"Strategy\"\n        },\n        {\n            \"id\": 5,\n            \"name\": \"Wishlist\"\n        }\n    ]\n}"
-						},
-						{
-							"name": "Game Already Exists",
-							"originalRequest": {
-								"method": "POST",
-								"header": [
-									{
-										"key": "Content-Type",
-										"value": "application/json"
-									},
-									{
-										"key": "Authorization",
-										"value": "Bearer {{access_token}}"
-									}
-								],
-								"body": {
-									"mode": "raw",
-									"raw": "{\n    \"gameId\": 1001,\n    \"notes\": \"Duplicate game\"\n}"
-								},
-								"url": {
-									"raw": "{{base_url}}/api/v1/collection/games",
-									"host": [
-										"{{base_url}}"
-									],
-									"path": [
-										"api",
-										"v1",
-										"collection",
-										"games"
-									]
-								}
-							},
-							"status": "Bad Request",
-							"code": 400,
-							"_postman_previewlanguage": "json",
-							"header": [
-								{
-									"key": "Content-Type",
-									"value": "application/json"
-								}
-							],
-							"cookie": [],
-							"body": "{\n    \"error\": \"Game already exists in your collection\"\n}"
-						},
-						{
-							"name": "Validation Error - Invalid Game ID",
-							"originalRequest": {
-								"method": "POST",
-								"header": [
-									{
-										"key": "Content-Type",
-										"value": "application/json"
-									},
-									{
-										"key": "Authorization",
-										"value": "Bearer {{access_token}}"
-									}
-								],
-								"body": {
-									"mode": "raw",
-									"raw": "{\n    \"gameId\": -1,\n    \"notes\": \"Invalid game ID\"\n}"
-								},
-								"url": {
-									"raw": "{{base_url}}/api/v1/collection/games",
-									"host": [
-										"{{base_url}}"
-									],
-									"path": [
-										"api",
-										"v1",
-										"collection",
-										"games"
-									]
-								}
-							},
-							"status": "Bad Request",
-							"code": 400,
-							"_postman_previewlanguage": "json",
-							"header": [
-								{
-									"key": "Content-Type",
-									"value": "application/json"
-								}
-							],
-							"cookie": [],
-							"body": "{\n    \"gameId\": \"Game ID must be positive\"\n}"
-						},
-						{
-							"name": "Unauthorized - No Token",
-							"originalRequest": {
-								"method": "POST",
-								"header": [
-									{
-										"key": "Content-Type",
-										"value": "application/json"
-									}
-								],
-								"body": {
-									"mode": "raw",
-									"raw": "{\n    \"gameId\": 1003,\n    \"notes\": \"Wishlist item\",\n    \"labelNames\": [\"Strategy\", \"Wishlist\"]\n}"
-								},
-								"url": {
-									"raw": "{{base_url}}/api/v1/collection/games",
-									"host": [
-										"{{base_url}}"
-									],
-									"path": [
-										"api",
-										"v1",
-										"collection",
-										"games"
-									]
-								}
-							},
-							"status": "Unauthorized",
-							"code": 401,
-							"_postman_previewlanguage": "text",
-							"header": [],
-							"cookie": [],
-							"body": ""
 						}
 					]
 				},
@@ -979,6 +582,11 @@
 							{
 								"key": "Content-Type",
 								"value": "application/json"
+							},
+							{
+								"key": "X-User-ID",
+								"value": "{{user_id}}",
+								"type": "text"
 							}
 						],
 						"body": {
@@ -991,7 +599,7 @@
 							}
 						},
 						"url": {
-							"raw": "{{base_url}}/api/v1/collection/games/1001",
+							"raw": "{{base_url}}/api/v1/collections/games/1001",
 							"host": [
 								"{{base_url}}"
 							],
@@ -1003,7 +611,7 @@
 								"1001"
 							]
 						},
-						"description": "Update notes and labels for a specific game in the current user's collection. Both fields are optional."
+						"description": "Update notes and labels for a specific game in the current user's collection. Requires X-User-ID header. Both fields are optional."
 					},
 					"response": [
 						{
@@ -1012,8 +620,8 @@
 								"method": "PUT",
 								"header": [
 									{
-										"key": "Authorization",
-										"value": "Bearer {{access_token}}"
+										"key": "X-User-ID",
+										"value": "1"
 									},
 									{
 										"key": "Content-Type",
@@ -1030,7 +638,7 @@
 									}
 								},
 								"url": {
-									"raw": "{{base_url}}/api/v1/collection/games/1001",
+									"raw": "{{base_url}}/api/v1/collections/games/1001",
 									"host": [
 										"{{base_url}}"
 									],
@@ -1054,139 +662,6 @@
 							],
 							"cookie": [],
 							"body": "{\n    \"id\": 1,\n    \"gameId\": 1001,\n    \"notes\": \"Updated notes for this game\",\n    \"modifiedAt\": \"2024-12-20T14:30:00Z\",\n    \"labels\": [\n        {\n            \"id\": 1,\n            \"name\": \"Strategy\"\n        },\n        {\n            \"id\": 4,\n            \"name\": \"Updated\"\n        }\n    ]\n}"
-						},
-						{
-							"name": "Update Only Notes",
-							"originalRequest": {
-								"method": "PUT",
-								"header": [
-									{
-										"key": "Authorization",
-										"value": "Bearer {{access_token}}"
-									},
-									{
-										"key": "Content-Type",
-										"value": "application/json"
-									}
-								],
-								"body": {
-									"mode": "raw",
-									"raw": "{\n    \"notes\": \"Only updating the notes field\"\n}",
-									"options": {
-										"raw": {
-											"language": "json"
-										}
-									}
-								},
-								"url": {
-									"raw": "{{base_url}}/api/v1/collection/games/1001",
-									"host": [
-										"{{base_url}}"
-									],
-									"path": [
-										"api",
-										"v1",
-										"collection",
-										"games",
-										"1001"
-									]
-								}
-							},
-							"status": "OK",
-							"code": 200,
-							"_postman_previewlanguage": "json",
-							"header": [
-								{
-									"key": "Content-Type",
-									"value": "application/json"
-								}
-							],
-							"cookie": [],
-							"body": "{\n    \"id\": 1,\n    \"gameId\": 1001,\n    \"notes\": \"Only updating the notes field\",\n    \"modifiedAt\": \"2024-12-20T14:35:00Z\",\n    \"labels\": [\n        {\n            \"id\": 1,\n            \"name\": \"Strategy\"\n        }\n    ]\n}"
-						},
-						{
-							"name": "Game Not Found",
-							"originalRequest": {
-								"method": "PUT",
-								"header": [
-									{
-										"key": "Authorization",
-										"value": "Bearer {{access_token}}"
-									},
-									{
-										"key": "Content-Type",
-										"value": "application/json"
-									}
-								],
-								"body": {
-									"mode": "raw",
-									"raw": "{\n    \"notes\": \"Updated notes\"\n}",
-									"options": {
-										"raw": {
-											"language": "json"
-										}
-									}
-								},
-								"url": {
-									"raw": "{{base_url}}/api/v1/collection/games/9999",
-									"host": [
-										"{{base_url}}"
-									],
-									"path": [
-										"api",
-										"v1",
-										"collection",
-										"games",
-										"9999"
-									]
-								}
-							},
-							"status": "Bad Request",
-							"code": 400,
-							"_postman_previewlanguage": "text",
-							"header": [],
-							"cookie": [],
-							"body": "Game not found in your collection"
-						},
-						{
-							"name": "Unauthorized - No Token",
-							"originalRequest": {
-								"method": "PUT",
-								"header": [
-									{
-										"key": "Content-Type",
-										"value": "application/json"
-									}
-								],
-								"body": {
-									"mode": "raw",
-									"raw": "{\n    \"notes\": \"Updated notes\"\n}",
-									"options": {
-										"raw": {
-											"language": "json"
-										}
-									}
-								},
-								"url": {
-									"raw": "{{base_url}}/api/v1/collection/games/1001",
-									"host": [
-										"{{base_url}}"
-									],
-									"path": [
-										"api",
-										"v1",
-										"collection",
-										"games",
-										"1001"
-									]
-								}
-							},
-							"status": "Unauthorized",
-							"code": 401,
-							"_postman_previewlanguage": "text",
-							"header": [],
-							"cookie": [],
-							"body": ""
 						}
 					]
 				},
@@ -1194,9 +669,15 @@
 					"name": "Remove Game from Collection",
 					"request": {
 						"method": "DELETE",
-						"header": [],
+						"header": [
+							{
+								"key": "X-User-ID",
+								"value": "{{user_id}}",
+								"type": "text"
+							}
+						],
 						"url": {
-							"raw": "{{base_url}}/api/v1/collection/games/1001",
+							"raw": "{{base_url}}/api/v1/collections/games/1001",
 							"host": [
 								"{{base_url}}"
 							],
@@ -1208,7 +689,7 @@
 								"1001"
 							]
 						},
-						"description": "Remove a specific game from the current user's collection by game ID. Requires authentication."
+						"description": "Remove a specific game from the current user's collection by game ID. Requires X-User-ID header."
 					},
 					"response": [
 						{
@@ -1217,12 +698,12 @@
 								"method": "DELETE",
 								"header": [
 									{
-										"key": "Authorization",
-										"value": "Bearer {{access_token}}"
+										"key": "X-User-ID",
+										"value": "1"
 									}
 								],
 								"url": {
-									"raw": "{{base_url}}/api/v1/collection/games/1001",
+									"raw": "{{base_url}}/api/v1/collections/games/1001",
 									"host": [
 										"{{base_url}}"
 									],
@@ -1241,73 +722,11 @@
 							"header": [],
 							"cookie": [],
 							"body": ""
-						},
-						{
-							"name": "Game Not Found",
-							"originalRequest": {
-								"method": "DELETE",
-								"header": [
-									{
-										"key": "Authorization",
-										"value": "Bearer {{access_token}}"
-									}
-								],
-								"url": {
-									"raw": "{{base_url}}/api/v1/collection/games/9999",
-									"host": [
-										"{{base_url}}"
-									],
-									"path": [
-										"api",
-										"v1",
-										"collection",
-										"games",
-										"9999"
-									]
-								}
-							},
-							"status": "Bad Request",
-							"code": 400,
-							"_postman_previewlanguage": "json",
-							"header": [
-								{
-									"key": "Content-Type",
-									"value": "application/json"
-								}
-							],
-							"cookie": [],
-							"body": "{\n    \"error\": \"Game not found in your collection\"\n}"
-						},
-						{
-							"name": "Unauthorized - No Token",
-							"originalRequest": {
-								"method": "DELETE",
-								"header": [],
-								"url": {
-									"raw": "{{base_url}}/api/v1/collection/games/1001",
-									"host": [
-										"{{base_url}}"
-									],
-									"path": [
-										"api",
-										"v1",
-										"collection",
-										"games",
-										"1001"
-									]
-								}
-							},
-							"status": "Unauthorized",
-							"code": 401,
-							"_postman_previewlanguage": "text",
-							"header": [],
-							"cookie": [],
-							"body": ""
 						}
 					]
 				}
 			],
-			"description": "Endpoints for managing and retrieving the user's board game collection"
+			"description": "Endpoints for managing and retrieving the user's board game collection using X-User-ID header"
 		}
 	]
 }

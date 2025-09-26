@@ -25,7 +25,7 @@ import java.util.Optional;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -33,133 +33,148 @@ class UserServiceTest {
 
     @Mock
     private UserRepository userRepository;
-    
+
     @Mock
     private UserBoardGameRepository userBoardGameRepository;
-    
+
     @Mock
     private LabelRepository labelRepository;
-    
-    @Mock
-    private UserContextService userContextService;
-    
+
     private UserService userService;
-    
+
     private User testUser;
     private UserBoardGame testUserBoardGame;
     private Label testLabel;
+    private static final Long TEST_USER_ID = 1L;
 
     @BeforeEach
     void setUp() {
-        userService = new UserService(userRepository, userBoardGameRepository, labelRepository, userContextService);
-        
+        userService = new UserService(userRepository, userBoardGameRepository, labelRepository);
+
         testUser = new User();
-        testUser.setId(1L);
+        testUser.setId(TEST_USER_ID);
         testUser.setEmail("test@example.com");
         testUser.setName("Test User");
         testUser.setCreatedAt(OffsetDateTime.now());
-        
+
         testLabel = new Label(1L, "Strategy");
         testLabel.setId(1L);
-        
-        testUserBoardGame = new UserBoardGame(1L, 1001, "Test notes");
+
+        testUserBoardGame = new UserBoardGame(TEST_USER_ID, 1001, "Test notes");
         testUserBoardGame.setId(1L);
         testUserBoardGame.setLabels(Set.of(testLabel));
         testUserBoardGame.setModifiedAt(OffsetDateTime.now());
     }
 
     @Test
-    @DisplayName("Should update current user profile successfully")
-    void shouldUpdateCurrentUserProfileSuccessfully() {
+    @DisplayName("Should update user profile successfully")
+    void shouldUpdateUserProfileSuccessfully() {
         String newName = "Updated Name";
         UpdateUserProfileRequest request = new UpdateUserProfileRequest(newName);
-        
-        when(userContextService.getCurrentUser()).thenReturn(Optional.of(testUser));
+
+        when(userRepository.findById(TEST_USER_ID)).thenReturn(Optional.of(testUser));
         when(userRepository.save(any(User.class))).thenReturn(testUser);
-        
-        User result = userService.updateCurrentUserProfile(request);
-        
+
+        User result = userService.updateUserProfile(TEST_USER_ID, request);
+
         assertNotNull(result);
         assertEquals(newName, testUser.getName());
+        verify(userRepository).findById(TEST_USER_ID);
         verify(userRepository).save(testUser);
     }
 
     @Test
-    @DisplayName("Should throw exception when updating profile without authenticated user")
-    void shouldThrowExceptionWhenUpdatingProfileWithoutAuthenticatedUser() {
+    @DisplayName("Should throw exception when updating profile for non-existent user")
+    void shouldThrowExceptionWhenUpdatingProfileForNonExistentUser() {
         UpdateUserProfileRequest request = new UpdateUserProfileRequest("New Name");
-        
-        when(userContextService.getCurrentUser()).thenReturn(Optional.empty());
-        
-        assertThrows(InvalidCredentialsException.class, 
-            () -> userService.updateCurrentUserProfile(request));
-        
+
+        when(userRepository.findById(TEST_USER_ID)).thenReturn(Optional.empty());
+
+        assertThrows(InvalidCredentialsException.class,
+            () -> userService.updateUserProfile(TEST_USER_ID, request));
+
+        verify(userRepository).findById(TEST_USER_ID);
         verify(userRepository, never()).save(any(User.class));
     }
 
     @Test
-    @DisplayName("Should get current user game collection successfully")
-    void shouldGetCurrentUserGameCollectionSuccessfully() {
-        when(userContextService.getCurrentUser()).thenReturn(Optional.of(testUser));
-        when(userBoardGameRepository.findByUserIdWithLabels(testUser.getId()))
-            .thenReturn(List.of(testUserBoardGame));
-        
-        GameCollectionDto result = userService.getCurrentUserGameCollection();
-        
+    @DisplayName("Should get user game collection successfully")
+    void shouldGetUserGameCollectionSuccessfully() {
+        when(userRepository.existsById(TEST_USER_ID)).thenReturn(true);
+        when(userBoardGameRepository.findByUserIdWithLabels(TEST_USER_ID)).thenReturn(List.of(testUserBoardGame));
+
+        GameCollectionDto result = userService.getUserGameCollection(TEST_USER_ID);
+
         assertNotNull(result);
-        assertNotNull(result.games());
         assertEquals(1, result.games().size());
-        
-        GameCollectionItemDto gameItem = result.games().get(0);
-        assertEquals(testUserBoardGame.getId(), gameItem.id());
-        assertEquals(testUserBoardGame.getGameId(), gameItem.gameId());
-        assertEquals(testUserBoardGame.getNotes(), gameItem.notes());
+        assertEquals(1001, result.games().get(0).gameId());
+        assertEquals("Test notes", result.games().get(0).notes());
+
+        verify(userRepository).existsById(TEST_USER_ID);
+        verify(userBoardGameRepository).findByUserIdWithLabels(TEST_USER_ID);
     }
 
     @Test
-    @DisplayName("Should throw exception when getting collection without authenticated user")
-    void shouldThrowExceptionWhenGettingCollectionWithoutAuthenticatedUser() {
-        when(userContextService.getCurrentUser()).thenReturn(Optional.empty());
-        
-        assertThrows(InvalidCredentialsException.class, 
-            () -> userService.getCurrentUserGameCollection());
+    @DisplayName("Should throw exception when getting collection for non-existent user")
+    void shouldThrowExceptionWhenGettingCollectionForNonExistentUser() {
+        when(userRepository.existsById(TEST_USER_ID)).thenReturn(false);
+
+        assertThrows(InvalidCredentialsException.class,
+            () -> userService.getUserGameCollection(TEST_USER_ID));
+
+        verify(userRepository).existsById(TEST_USER_ID);
+        verify(userBoardGameRepository, never()).findByUserIdWithLabels(any());
     }
 
     @Test
     @DisplayName("Should add game to collection successfully")
     void shouldAddGameToCollectionSuccessfully() {
         Integer gameId = 1002;
-        String notes = "New game notes";
-        Set<String> labelNames = Set.of("Strategy", "New");
-        AddGameToCollectionRequest request = new AddGameToCollectionRequest(gameId, notes, labelNames);
-        
-        when(userContextService.getCurrentUser()).thenReturn(Optional.of(testUser));
-        when(userBoardGameRepository.existsByUserIdAndGameId(testUser.getId(), gameId)).thenReturn(false);
-        when(labelRepository.findByUserIdAndNameIn(testUser.getId(), labelNames))
-            .thenReturn(List.of(testLabel));
-        when(labelRepository.save(any(Label.class))).thenReturn(new Label(1L, "New"));
+        AddGameToCollectionRequest request = new AddGameToCollectionRequest(gameId, "New game", Set.of("Action"));
+
+        when(userRepository.existsById(TEST_USER_ID)).thenReturn(true);
+        when(userBoardGameRepository.existsByUserIdAndGameId(TEST_USER_ID, gameId)).thenReturn(false);
+        when(labelRepository.findByUserIdAndNameIn(TEST_USER_ID, request.labelNames())).thenReturn(List.of());
         when(userBoardGameRepository.save(any(UserBoardGame.class))).thenReturn(testUserBoardGame);
-        
-        GameCollectionItemDto result = userService.addGameToCollection(request);
-        
+
+        GameCollectionItemDto result = userService.addGameToCollection(TEST_USER_ID, request);
+
         assertNotNull(result);
-        verify(userBoardGameRepository).existsByUserIdAndGameId(testUser.getId(), gameId);
+        assertEquals(1L, result.id());
+
+        verify(userRepository).existsById(TEST_USER_ID);
+        verify(userBoardGameRepository).existsByUserIdAndGameId(TEST_USER_ID, gameId);
         verify(userBoardGameRepository).save(any(UserBoardGame.class));
     }
 
     @Test
-    @DisplayName("Should throw exception when adding duplicate game to collection")
-    void shouldThrowExceptionWhenAddingDuplicateGameToCollection() {
+    @DisplayName("Should throw exception when adding game to collection for non-existent user")
+    void shouldThrowExceptionWhenAddingGameToCollectionForNonExistentUser() {
+        AddGameToCollectionRequest request = new AddGameToCollectionRequest(1002, "New game", Set.of());
+
+        when(userRepository.existsById(TEST_USER_ID)).thenReturn(false);
+
+        assertThrows(InvalidCredentialsException.class,
+            () -> userService.addGameToCollection(TEST_USER_ID, request));
+
+        verify(userRepository).existsById(TEST_USER_ID);
+        verify(userBoardGameRepository, never()).save(any(UserBoardGame.class));
+    }
+
+    @Test
+    @DisplayName("Should throw exception when adding duplicate game")
+    void shouldThrowExceptionWhenAddingDuplicateGame() {
         Integer gameId = 1001;
-        AddGameToCollectionRequest request = new AddGameToCollectionRequest(gameId, "notes", Set.of());
-        
-        when(userContextService.getCurrentUser()).thenReturn(Optional.of(testUser));
-        when(userBoardGameRepository.existsByUserIdAndGameId(testUser.getId(), gameId)).thenReturn(true);
-        
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
-            () -> userService.addGameToCollection(request));
-        
-        assertEquals("Game already exists in your collection", exception.getMessage());
+        AddGameToCollectionRequest request = new AddGameToCollectionRequest(gameId, "Duplicate", Set.of());
+
+        when(userRepository.existsById(TEST_USER_ID)).thenReturn(true);
+        when(userBoardGameRepository.existsByUserIdAndGameId(TEST_USER_ID, gameId)).thenReturn(true);
+
+        assertThrows(IllegalArgumentException.class,
+            () -> userService.addGameToCollection(TEST_USER_ID, request));
+
+        verify(userRepository).existsById(TEST_USER_ID);
+        verify(userBoardGameRepository).existsByUserIdAndGameId(TEST_USER_ID, gameId);
         verify(userBoardGameRepository, never()).save(any(UserBoardGame.class));
     }
 
@@ -167,109 +182,174 @@ class UserServiceTest {
     @DisplayName("Should update game in collection successfully")
     void shouldUpdateGameInCollectionSuccessfully() {
         Integer gameId = 1001;
-        String updatedNotes = "Updated notes";
-        Set<String> labelNames = Set.of("Updated");
-        UpdateGameCollectionRequest request = new UpdateGameCollectionRequest(updatedNotes, labelNames);
-        
-        when(userContextService.getCurrentUser()).thenReturn(Optional.of(testUser));
-        when(userBoardGameRepository.findByUserIdAndGameIdWithLabels(testUser.getId(), gameId))
-            .thenReturn(Optional.of(testUserBoardGame));
-        when(labelRepository.findByUserIdAndNameIn(testUser.getId(), labelNames))
-            .thenReturn(List.of());
-        when(labelRepository.save(any(Label.class))).thenReturn(new Label(1L, "Updated"));
+        UpdateGameCollectionRequest request = new UpdateGameCollectionRequest("Updated notes", Set.of("Strategy"));
+
+        when(userRepository.existsById(TEST_USER_ID)).thenReturn(true);
+        when(userBoardGameRepository.findByUserIdAndGameIdWithLabels(TEST_USER_ID, gameId)).thenReturn(Optional.of(testUserBoardGame));
+        when(labelRepository.findByUserIdAndNameIn(TEST_USER_ID, request.labelNames())).thenReturn(List.of(testLabel));
         when(userBoardGameRepository.save(any(UserBoardGame.class))).thenReturn(testUserBoardGame);
-        
-        GameCollectionItemDto result = userService.updateGameInCollection(gameId, request);
-        
+
+        GameCollectionItemDto result = userService.updateGameInCollection(TEST_USER_ID, gameId, request);
+
         assertNotNull(result);
-        assertEquals(updatedNotes, testUserBoardGame.getNotes());
+        assertEquals("Updated notes", testUserBoardGame.getNotes());
+
+        verify(userRepository).existsById(TEST_USER_ID);
+        verify(userBoardGameRepository).findByUserIdAndGameIdWithLabels(TEST_USER_ID, gameId);
         verify(userBoardGameRepository).save(testUserBoardGame);
+    }
+
+    @Test
+    @DisplayName("Should throw exception when updating game for non-existent user")
+    void shouldThrowExceptionWhenUpdatingGameForNonExistentUser() {
+        Integer gameId = 1001;
+        UpdateGameCollectionRequest request = new UpdateGameCollectionRequest("Updated", Set.of());
+
+        when(userRepository.existsById(TEST_USER_ID)).thenReturn(false);
+
+        assertThrows(InvalidCredentialsException.class,
+            () -> userService.updateGameInCollection(TEST_USER_ID, gameId, request));
+
+        verify(userRepository).existsById(TEST_USER_ID);
+        verify(userBoardGameRepository, never()).findByUserIdAndGameIdWithLabels(any(), any());
     }
 
     @Test
     @DisplayName("Should throw exception when updating non-existent game")
     void shouldThrowExceptionWhenUpdatingNonExistentGame() {
         Integer gameId = 9999;
-        UpdateGameCollectionRequest request = new UpdateGameCollectionRequest("notes", Set.of());
-        
-        when(userContextService.getCurrentUser()).thenReturn(Optional.of(testUser));
-        when(userBoardGameRepository.findByUserIdAndGameIdWithLabels(testUser.getId(), gameId))
-            .thenReturn(Optional.empty());
-        
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
-            () -> userService.updateGameInCollection(gameId, request));
-        
-        assertEquals("Game not found in your collection", exception.getMessage());
+        UpdateGameCollectionRequest request = new UpdateGameCollectionRequest("Updated", Set.of());
+
+        when(userRepository.existsById(TEST_USER_ID)).thenReturn(true);
+        when(userBoardGameRepository.findByUserIdAndGameIdWithLabels(TEST_USER_ID, gameId)).thenReturn(Optional.empty());
+
+        assertThrows(IllegalArgumentException.class,
+            () -> userService.updateGameInCollection(TEST_USER_ID, gameId, request));
+
+        verify(userRepository).existsById(TEST_USER_ID);
+        verify(userBoardGameRepository).findByUserIdAndGameIdWithLabels(TEST_USER_ID, gameId);
+        verify(userBoardGameRepository, never()).save(any(UserBoardGame.class));
     }
 
     @Test
     @DisplayName("Should delete game from collection successfully")
     void shouldDeleteGameFromCollectionSuccessfully() {
         Integer gameId = 1001;
-        
-        when(userContextService.getCurrentUser()).thenReturn(Optional.of(testUser));
-        when(userBoardGameRepository.existsByUserIdAndGameId(testUser.getId(), gameId)).thenReturn(true);
-        
-        assertDoesNotThrow(() -> userService.deleteGameFromCollection(gameId));
-        
-        verify(userBoardGameRepository).deleteByUserIdAndGameId(testUser.getId(), gameId);
+
+        when(userRepository.existsById(TEST_USER_ID)).thenReturn(true);
+        when(userBoardGameRepository.existsByUserIdAndGameId(TEST_USER_ID, gameId)).thenReturn(true);
+
+        assertDoesNotThrow(() -> userService.deleteGameFromCollection(TEST_USER_ID, gameId));
+
+        verify(userRepository).existsById(TEST_USER_ID);
+        verify(userBoardGameRepository).existsByUserIdAndGameId(TEST_USER_ID, gameId);
+        verify(userBoardGameRepository).deleteByUserIdAndGameId(TEST_USER_ID, gameId);
     }
 
     @Test
-    @DisplayName("Should throw exception when deleting non-existent game from collection")
-    void shouldThrowExceptionWhenDeletingNonExistentGameFromCollection() {
+    @DisplayName("Should throw exception when deleting game for non-existent user")
+    void shouldThrowExceptionWhenDeletingGameForNonExistentUser() {
+        Integer gameId = 1001;
+
+        when(userRepository.existsById(TEST_USER_ID)).thenReturn(false);
+
+        assertThrows(InvalidCredentialsException.class,
+            () -> userService.deleteGameFromCollection(TEST_USER_ID, gameId));
+
+        verify(userRepository).existsById(TEST_USER_ID);
+        verify(userBoardGameRepository, never()).deleteByUserIdAndGameId(any(), any());
+    }
+
+    @Test
+    @DisplayName("Should throw exception when deleting non-existent game")
+    void shouldThrowExceptionWhenDeletingNonExistentGame() {
         Integer gameId = 9999;
-        
-        when(userContextService.getCurrentUser()).thenReturn(Optional.of(testUser));
-        when(userBoardGameRepository.existsByUserIdAndGameId(testUser.getId(), gameId)).thenReturn(false);
-        
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
-            () -> userService.deleteGameFromCollection(gameId));
-        
-        assertEquals("Game not found in your collection", exception.getMessage());
-        verify(userBoardGameRepository, never()).deleteByUserIdAndGameId(anyLong(), anyInt());
+
+        when(userRepository.existsById(TEST_USER_ID)).thenReturn(true);
+        when(userBoardGameRepository.existsByUserIdAndGameId(TEST_USER_ID, gameId)).thenReturn(false);
+
+        assertThrows(IllegalArgumentException.class,
+            () -> userService.deleteGameFromCollection(TEST_USER_ID, gameId));
+
+        verify(userRepository).existsById(TEST_USER_ID);
+        verify(userBoardGameRepository).existsByUserIdAndGameId(TEST_USER_ID, gameId);
+        verify(userBoardGameRepository, never()).deleteByUserIdAndGameId(any(), any());
     }
 
     @Test
-    @DisplayName("Should delete current user account successfully")
-    void shouldDeleteCurrentUserAccountSuccessfully() {
-        when(userContextService.getCurrentUser()).thenReturn(Optional.of(testUser));
-        
-        assertDoesNotThrow(() -> userService.deleteCurrentUserAccount());
-        
+    @DisplayName("Should delete user account successfully")
+    void shouldDeleteUserAccountSuccessfully() {
+        when(userRepository.findById(TEST_USER_ID)).thenReturn(Optional.of(testUser));
+
+        assertDoesNotThrow(() -> userService.deleteUserAccount(TEST_USER_ID));
+
+        verify(userRepository).findById(TEST_USER_ID);
         verify(userRepository).delete(testUser);
     }
 
     @Test
-    @DisplayName("Should throw exception when deleting account without authenticated user")
-    void shouldThrowExceptionWhenDeletingAccountWithoutAuthenticatedUser() {
-        when(userContextService.getCurrentUser()).thenReturn(Optional.empty());
-        
-        assertThrows(InvalidCredentialsException.class, 
-            () -> userService.deleteCurrentUserAccount());
-        
+    @DisplayName("Should throw exception when deleting non-existent user account")
+    void shouldThrowExceptionWhenDeletingNonExistentUserAccount() {
+        when(userRepository.findById(TEST_USER_ID)).thenReturn(Optional.empty());
+
+        assertThrows(InvalidCredentialsException.class,
+            () -> userService.deleteUserAccount(TEST_USER_ID));
+
+        verify(userRepository).findById(TEST_USER_ID);
         verify(userRepository, never()).delete(any(User.class));
     }
 
     @Test
-    @DisplayName("Should process labels correctly with existing and new labels")
-    void shouldProcessLabelsCorrectlyWithExistingAndNewLabels() {
-        Long userId = 1L;
-        Set<String> labelNames = Set.of("Existing", "New");
-        Label existingLabel = new Label(userId, "Existing");
-        
-        when(labelRepository.findByUserIdAndNameIn(userId, labelNames))
-            .thenReturn(List.of(existingLabel));
-        when(labelRepository.save(any(Label.class))).thenReturn(new Label(userId, "New"));
-        
-        AddGameToCollectionRequest request = new AddGameToCollectionRequest(1001, "notes", labelNames);
-        when(userContextService.getCurrentUser()).thenReturn(Optional.of(testUser));
-        when(userBoardGameRepository.existsByUserIdAndGameId(userId, 1001)).thenReturn(false);
+    @DisplayName("Should handle empty game collection")
+    void shouldHandleEmptyGameCollection() {
+        when(userRepository.existsById(TEST_USER_ID)).thenReturn(true);
+        when(userBoardGameRepository.findByUserIdWithLabels(TEST_USER_ID)).thenReturn(List.of());
+
+        GameCollectionDto result = userService.getUserGameCollection(TEST_USER_ID);
+
+        assertNotNull(result);
+        assertTrue(result.games().isEmpty());
+
+        verify(userRepository).existsById(TEST_USER_ID);
+        verify(userBoardGameRepository).findByUserIdWithLabels(TEST_USER_ID);
+    }
+
+    @Test
+    @DisplayName("Should handle adding game with no labels")
+    void shouldHandleAddingGameWithNoLabels() {
+        Integer gameId = 1002;
+        AddGameToCollectionRequest request = new AddGameToCollectionRequest(gameId, "No labels game", null);
+
+        when(userRepository.existsById(TEST_USER_ID)).thenReturn(true);
+        when(userBoardGameRepository.existsByUserIdAndGameId(TEST_USER_ID, gameId)).thenReturn(false);
         when(userBoardGameRepository.save(any(UserBoardGame.class))).thenReturn(testUserBoardGame);
-        
-        userService.addGameToCollection(request);
-        
-        verify(labelRepository).findByUserIdAndNameIn(userId, labelNames);
-        verify(labelRepository).save(any(Label.class)); // For the new label
+
+        GameCollectionItemDto result = userService.addGameToCollection(TEST_USER_ID, request);
+
+        assertNotNull(result);
+
+        verify(userRepository).existsById(TEST_USER_ID);
+        verify(userBoardGameRepository).save(any(UserBoardGame.class));
+        verify(labelRepository, never()).findByUserIdAndNameIn(any(), any());
+    }
+
+    @Test
+    @DisplayName("Should handle updating game with null labels")
+    void shouldHandleUpdatingGameWithNullLabels() {
+        Integer gameId = 1001;
+        UpdateGameCollectionRequest request = new UpdateGameCollectionRequest("Updated notes", null);
+
+        when(userRepository.existsById(TEST_USER_ID)).thenReturn(true);
+        when(userBoardGameRepository.findByUserIdAndGameIdWithLabels(TEST_USER_ID, gameId)).thenReturn(Optional.of(testUserBoardGame));
+        when(userBoardGameRepository.save(any(UserBoardGame.class))).thenReturn(testUserBoardGame);
+
+        GameCollectionItemDto result = userService.updateGameInCollection(TEST_USER_ID, gameId, request);
+
+        assertNotNull(result);
+        assertEquals("Updated notes", testUserBoardGame.getNotes());
+
+        verify(userRepository).existsById(TEST_USER_ID);
+        verify(userBoardGameRepository).save(testUserBoardGame);
+        verify(labelRepository, never()).findByUserIdAndNameIn(any(), any());
     }
 }

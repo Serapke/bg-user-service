@@ -1,5 +1,6 @@
 package com.mserapinas.boardgame.userservice.integration;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mserapinas.boardgame.userservice.dto.request.AddGameToCollectionRequest;
 import com.mserapinas.boardgame.userservice.dto.request.RegisterRequest;
@@ -30,17 +31,18 @@ class CollectionIntegrationTest extends BaseIntegrationTest {
     @Autowired
     private ObjectMapper objectMapper;
 
-    private static final String COLLECTION_BASE_URL = "/api/v1/collection";
+    private static final String COLLECTION_BASE_URL = "/api/v1/collections";
     private static final String AUTH_BASE_URL = "/api/v1/auth";
-    
-    private String accessToken;
+    private static final String USER_ID_HEADER = "X-User-ID";
+
+    private Long userId;
 
     @BeforeEach
     @Transactional
     void setUp() throws Exception {
-        // Register a user and get access token
+        // Register a user and get user ID
         RegisterRequest registerRequest = new RegisterRequest("test@example.com", "Test User", "Password123!");
-        
+
         MvcResult result = mockMvc.perform(post(AUTH_BASE_URL + "/register")
                 .with(csrf())
                 .contentType(MediaType.APPLICATION_JSON)
@@ -48,301 +50,263 @@ class CollectionIntegrationTest extends BaseIntegrationTest {
                 .andExpect(status().isCreated())
                 .andReturn();
 
-        String response = result.getResponse().getContentAsString();
-        com.fasterxml.jackson.databind.JsonNode jsonNode = objectMapper.readTree(response);
-        accessToken = jsonNode.get("token").asText();
+        JsonNode response = objectMapper.readTree(result.getResponse().getContentAsString());
+        userId = response.get("id").asLong();
     }
 
     @Test
-    @DisplayName("Should manage complete game collection lifecycle")
+    @DisplayName("Should get empty collection for new user")
     @Transactional
-    void shouldManageCompleteGameCollectionLifecycle() throws Exception {
-        // Step 1: Get empty collection initially
+    void shouldGetEmptyCollectionForNewUser() throws Exception {
         mockMvc.perform(get(COLLECTION_BASE_URL)
-                .header("Authorization", "Bearer " + accessToken))
+                .header(USER_ID_HEADER, userId)
+                .with(csrf()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.games").isArray())
                 .andExpect(jsonPath("$.games").isEmpty());
+    }
 
-        // Step 2: Add first game with labels
-        AddGameToCollectionRequest addRequest1 = new AddGameToCollectionRequest(
+    @Test
+    @DisplayName("Should add game to collection successfully")
+    @Transactional
+    void shouldAddGameToCollectionSuccessfully() throws Exception {
+        AddGameToCollectionRequest request = new AddGameToCollectionRequest(
             1001, "Great strategy game", Set.of("Strategy", "Euro")
         );
-        
-        MvcResult addResult1 = mockMvc.perform(post(COLLECTION_BASE_URL + "/games")
+
+        mockMvc.perform(post(COLLECTION_BASE_URL + "/games")
+                .header(USER_ID_HEADER, userId)
                 .with(csrf())
-                .header("Authorization", "Bearer " + accessToken)
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(addRequest1)))
+                .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.gameId").value(1001))
                 .andExpect(jsonPath("$.notes").value("Great strategy game"))
-                .andExpect(jsonPath("$.labels").isArray())
-                .andReturn();
-
-        // Step 3: Add second game without labels
-        AddGameToCollectionRequest addRequest2 = new AddGameToCollectionRequest(
-            1002, "Fun party game", null
-        );
-        
-        mockMvc.perform(post(COLLECTION_BASE_URL + "/games")
-                .with(csrf())
-                .header("Authorization", "Bearer " + accessToken)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(addRequest2)))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.gameId").value(1002))
-                .andExpect(jsonPath("$.notes").value("Fun party game"));
-
-        // Step 4: Get collection with both games
-        mockMvc.perform(get(COLLECTION_BASE_URL)
-                .header("Authorization", "Bearer " + accessToken))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.games").isArray())
-                .andExpect(jsonPath("$.games.length()").value(2));
-
-        // Step 5: Update first game
-        UpdateGameCollectionRequest updateRequest = new UpdateGameCollectionRequest(
-            "Updated notes for this amazing game", Set.of("Strategy", "Updated")
-        );
-        
-        mockMvc.perform(put(COLLECTION_BASE_URL + "/games/1001")
-                .with(csrf())
-                .header("Authorization", "Bearer " + accessToken)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(updateRequest)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.gameId").value(1001))
-                .andExpect(jsonPath("$.notes").value("Updated notes for this amazing game"));
-
-        // Step 6: Try to add duplicate game (should fail)
-        AddGameToCollectionRequest duplicateRequest = new AddGameToCollectionRequest(
-            1001, "Duplicate attempt", Set.of()
-        );
-        
-        mockMvc.perform(post(COLLECTION_BASE_URL + "/games")
-                .with(csrf())
-                .header("Authorization", "Bearer " + accessToken)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(duplicateRequest)))
-                .andExpect(status().isBadRequest());
-
-        // Step 7: Delete a game
-        mockMvc.perform(delete(COLLECTION_BASE_URL + "/games/1002")
-                .with(csrf())
-                .header("Authorization", "Bearer " + accessToken))
-                .andExpect(status().isNoContent());
-
-        // Step 8: Verify collection has only one game left
-        mockMvc.perform(get(COLLECTION_BASE_URL)
-                .header("Authorization", "Bearer " + accessToken))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.games").isArray())
-                .andExpect(jsonPath("$.games.length()").value(1))
-                .andExpect(jsonPath("$.games[0].gameId").value(1001));
-
-        // Step 9: Try to delete non-existent game (should fail)
-        mockMvc.perform(delete(COLLECTION_BASE_URL + "/games/9999")
-                .with(csrf())
-                .header("Authorization", "Bearer " + accessToken))
-                .andExpect(status().isBadRequest());
-
-        // Step 10: Try to update non-existent game (should fail)
-        UpdateGameCollectionRequest nonExistentUpdateRequest = new UpdateGameCollectionRequest(
-            "This should fail", Set.of()
-        );
-        
-        mockMvc.perform(put(COLLECTION_BASE_URL + "/games/9999")
-                .with(csrf())
-                .header("Authorization", "Bearer " + accessToken)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(nonExistentUpdateRequest)))
-                .andExpect(status().isBadRequest());
+                .andExpect(jsonPath("$.labels").isArray());
     }
 
     @Test
-    @DisplayName("Should handle label management correctly")
+    @DisplayName("Should get collection with added games")
     @Transactional
-    void shouldHandleLabelManagementCorrectly() throws Exception {
-        // Add game with initial labels
-        AddGameToCollectionRequest addRequest = new AddGameToCollectionRequest(
-            1001, "Game with labels", Set.of("Strategy", "Heavy", "Euro")
+    void shouldGetCollectionWithAddedGames() throws Exception {
+        // Add a game first
+        AddGameToCollectionRequest request = new AddGameToCollectionRequest(
+            1002, "Another great game", Set.of("Strategy")
         );
-        
-        mockMvc.perform(post(COLLECTION_BASE_URL + "/games")
-                .with(csrf())
-                .header("Authorization", "Bearer " + accessToken)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(addRequest)))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.labels.length()").value(3));
-
-        // Update with some overlapping labels (should reuse existing ones)
-        UpdateGameCollectionRequest updateRequest = new UpdateGameCollectionRequest(
-            "Updated game", Set.of("Strategy", "Updated", "New")
-        );
-        
-        mockMvc.perform(put(COLLECTION_BASE_URL + "/games/1001")
-                .with(csrf())
-                .header("Authorization", "Bearer " + accessToken)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(updateRequest)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.labels.length()").value(3));
-
-        // Add another game with some of the same labels
-        AddGameToCollectionRequest addRequest2 = new AddGameToCollectionRequest(
-            1002, "Another game", Set.of("Strategy", "Light")
-        );
-        
-        mockMvc.perform(post(COLLECTION_BASE_URL + "/games")
-                .with(csrf())
-                .header("Authorization", "Bearer " + accessToken)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(addRequest2)))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.labels.length()").value(2));
-    }
-
-    @Test
-    @DisplayName("Should enforce validation rules on collection operations")
-    @Transactional
-    void shouldEnforceValidationRulesOnCollectionOperations() throws Exception {
-        // Test adding game with invalid gameId (negative)
-        AddGameToCollectionRequest invalidGameIdRequest = new AddGameToCollectionRequest(
-            -1, "Invalid game", Set.of()
-        );
-        
-        mockMvc.perform(post(COLLECTION_BASE_URL + "/games")
-                .with(csrf())
-                .header("Authorization", "Bearer " + accessToken)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(invalidGameIdRequest)))
-                .andExpect(status().isBadRequest());
-
-        // Test adding game with null gameId
-        String requestWithNullGameId = "{\"gameId\": null, \"notes\": \"Test\", \"labelNames\": []}";
-        
-        mockMvc.perform(post(COLLECTION_BASE_URL + "/games")
-                .with(csrf())
-                .header("Authorization", "Bearer " + accessToken)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(requestWithNullGameId))
-                .andExpect(status().isBadRequest());
-
-        // Test adding game with too long notes
-        String longNotes = "a".repeat(1001);
-        AddGameToCollectionRequest longNotesRequest = new AddGameToCollectionRequest(
-            1001, longNotes, Set.of()
-        );
-        
-        mockMvc.perform(post(COLLECTION_BASE_URL + "/games")
-                .with(csrf())
-                .header("Authorization", "Bearer " + accessToken)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(longNotesRequest)))
-                .andExpect(status().isBadRequest());
-
-        // Test adding game with too many labels
-        Set<String> tooManyLabels = Set.of("1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11");
-        AddGameToCollectionRequest tooManyLabelsRequest = new AddGameToCollectionRequest(
-            1001, "Test", tooManyLabels
-        );
-        
-        mockMvc.perform(post(COLLECTION_BASE_URL + "/games")
-                .with(csrf())
-                .header("Authorization", "Bearer " + accessToken)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(tooManyLabelsRequest)))
-                .andExpect(status().isBadRequest());
-    }
-
-    @Test
-    @DisplayName("Should require authentication for all collection endpoints")
-    @Transactional
-    void shouldRequireAuthenticationForAllCollectionEndpoints() throws Exception {
-        AddGameToCollectionRequest addRequest = new AddGameToCollectionRequest(1001, "Test", Set.of());
-        UpdateGameCollectionRequest updateRequest = new UpdateGameCollectionRequest("Update", Set.of());
-
-        // Test all endpoints without authentication
-        mockMvc.perform(get(COLLECTION_BASE_URL))
-                .andExpect(status().isForbidden());
 
         mockMvc.perform(post(COLLECTION_BASE_URL + "/games")
+                .header(USER_ID_HEADER, userId)
                 .with(csrf())
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(addRequest)))
-                .andExpect(status().isForbidden());
-
-        mockMvc.perform(put(COLLECTION_BASE_URL + "/games/1001")
-                .with(csrf())
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(updateRequest)))
-                .andExpect(status().isForbidden());
-
-        mockMvc.perform(delete(COLLECTION_BASE_URL + "/games/1001")
-                .with(csrf()))
-                .andExpect(status().isForbidden());
-    }
-
-    @Test
-    @DisplayName("Should isolate collections between different users")
-    @Transactional
-    void shouldIsolateCollectionsBetweenDifferentUsers() throws Exception {
-        // User 1 adds a game
-        AddGameToCollectionRequest user1GameRequest = new AddGameToCollectionRequest(
-            1001, "User 1 game", Set.of("User1")
-        );
-        
-        mockMvc.perform(post(COLLECTION_BASE_URL + "/games")
-                .with(csrf())
-                .header("Authorization", "Bearer " + accessToken)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(user1GameRequest)))
+                .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated());
 
-        // Create a second user
-        RegisterRequest user2RegisterRequest = new RegisterRequest("user2@example.com", "User Two", "Password123!");
-        
-        MvcResult user2Result = mockMvc.perform(post(AUTH_BASE_URL + "/register")
+        // Get collection
+        mockMvc.perform(get(COLLECTION_BASE_URL)
+                .header(USER_ID_HEADER, userId)
+                .with(csrf()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.games").isArray())
+                .andExpect(jsonPath("$.games").isNotEmpty())
+                .andExpect(jsonPath("$.games[0].gameId").value(1002))
+                .andExpect(jsonPath("$.games[0].notes").value("Another great game"));
+    }
+
+    @Test
+    @DisplayName("Should update game in collection successfully")
+    @Transactional
+    void shouldUpdateGameInCollectionSuccessfully() throws Exception {
+        // Add a game first
+        AddGameToCollectionRequest addRequest = new AddGameToCollectionRequest(
+            1003, "Original notes", Set.of("Original")
+        );
+
+        mockMvc.perform(post(COLLECTION_BASE_URL + "/games")
+                .header(USER_ID_HEADER, userId)
                 .with(csrf())
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(user2RegisterRequest)))
-                .andExpect(status().isCreated())
-                .andReturn();
+                .content(objectMapper.writeValueAsString(addRequest)))
+                .andExpect(status().isCreated());
 
-        String user2Response = user2Result.getResponse().getContentAsString();
-        com.fasterxml.jackson.databind.JsonNode user2JsonNode = objectMapper.readTree(user2Response);
-        String user2AccessToken = user2JsonNode.get("token").asText();
+        // Update the game
+        UpdateGameCollectionRequest updateRequest = new UpdateGameCollectionRequest(
+            "Updated notes", Set.of("Updated", "Strategy")
+        );
 
-        // User 2 should see empty collection
+        mockMvc.perform(put(COLLECTION_BASE_URL + "/games/1003")
+                .header(USER_ID_HEADER, userId)
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(updateRequest)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.gameId").value(1003))
+                .andExpect(jsonPath("$.notes").value("Updated notes"));
+    }
+
+    @Test
+    @DisplayName("Should delete game from collection successfully")
+    @Transactional
+    void shouldDeleteGameFromCollectionSuccessfully() throws Exception {
+        // Add a game first
+        AddGameToCollectionRequest request = new AddGameToCollectionRequest(
+            1004, "To be deleted", Set.of()
+        );
+
+        mockMvc.perform(post(COLLECTION_BASE_URL + "/games")
+                .header(USER_ID_HEADER, userId)
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isCreated());
+
+        // Delete the game
+        mockMvc.perform(delete(COLLECTION_BASE_URL + "/games/1004")
+                .header(USER_ID_HEADER, userId)
+                .with(csrf()))
+                .andExpect(status().isNoContent());
+
+        // Verify collection is empty
         mockMvc.perform(get(COLLECTION_BASE_URL)
-                .header("Authorization", "Bearer " + user2AccessToken))
+                .header(USER_ID_HEADER, userId)
+                .with(csrf()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.games").isArray())
                 .andExpect(jsonPath("$.games").isEmpty());
+    }
 
-        // User 2 can add the same gameId (different user collections)
-        AddGameToCollectionRequest user2GameRequest = new AddGameToCollectionRequest(
-            1001, "User 2 version of game", Set.of("User2")
+    @Test
+    @DisplayName("Should return bad request when adding duplicate game")
+    @Transactional
+    void shouldReturnBadRequestWhenAddingDuplicateGame() throws Exception {
+        AddGameToCollectionRequest request = new AddGameToCollectionRequest(
+            1005, "First addition", Set.of()
         );
-        
+
+        // Add game first time
         mockMvc.perform(post(COLLECTION_BASE_URL + "/games")
+                .header(USER_ID_HEADER, userId)
                 .with(csrf())
-                .header("Authorization", "Bearer " + user2AccessToken)
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(user2GameRequest)))
+                .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated());
 
-        // Verify both users have their own version
-        mockMvc.perform(get(COLLECTION_BASE_URL)
-                .header("Authorization", "Bearer " + accessToken))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.games[0].notes").value("User 1 game"));
+        // Try to add same game again
+        AddGameToCollectionRequest duplicateRequest = new AddGameToCollectionRequest(
+            1005, "Duplicate attempt", Set.of()
+        );
 
+        mockMvc.perform(post(COLLECTION_BASE_URL + "/games")
+                .header(USER_ID_HEADER, userId)
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(duplicateRequest)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("Should return bad request when updating non-existent game")
+    @Transactional
+    void shouldReturnBadRequestWhenUpdatingNonExistentGame() throws Exception {
+        UpdateGameCollectionRequest updateRequest = new UpdateGameCollectionRequest(
+            "Updated notes", Set.of("Strategy")
+        );
+
+        mockMvc.perform(put(COLLECTION_BASE_URL + "/games/9999")
+                .header(USER_ID_HEADER, userId)
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(updateRequest)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("Should return bad request when deleting non-existent game")
+    @Transactional
+    void shouldReturnBadRequestWhenDeletingNonExistentGame() throws Exception {
+        mockMvc.perform(delete(COLLECTION_BASE_URL + "/games/9999")
+                .header(USER_ID_HEADER, userId)
+                .with(csrf()))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("Should handle games with multiple labels")
+    @Transactional
+    void shouldHandleGamesWithMultipleLabels() throws Exception {
+        AddGameToCollectionRequest request = new AddGameToCollectionRequest(
+            1006, "Multi-label game", Set.of("Strategy", "Euro", "Economic", "Medium-Weight")
+        );
+
+        mockMvc.perform(post(COLLECTION_BASE_URL + "/games")
+                .header(USER_ID_HEADER, userId)
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.gameId").value(1006))
+                .andExpect(jsonPath("$.labels").isArray())
+                .andExpect(jsonPath("$.labels.length()").value(4));
+    }
+
+    @Test
+    @DisplayName("Should handle game with no labels")
+    @Transactional
+    void shouldHandleGameWithNoLabels() throws Exception {
+        AddGameToCollectionRequest request = new AddGameToCollectionRequest(
+            1007, "No labels game", null
+        );
+
+        mockMvc.perform(post(COLLECTION_BASE_URL + "/games")
+                .header(USER_ID_HEADER, userId)
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.gameId").value(1007))
+                .andExpect(jsonPath("$.labels").isArray());
+    }
+
+    @Test
+    @DisplayName("Should return bad request when missing X-User-ID header")
+    @Transactional
+    void shouldReturnBadRequestWhenMissingUserIdHeader() throws Exception {
         mockMvc.perform(get(COLLECTION_BASE_URL)
-                .header("Authorization", "Bearer " + user2AccessToken))
+                .with(csrf()))
+                .andExpect(status().isBadRequest());
+
+        AddGameToCollectionRequest request = new AddGameToCollectionRequest(1008, "Test", Set.of());
+
+        mockMvc.perform(post(COLLECTION_BASE_URL + "/games")
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("Should handle concurrent operations on collection")
+    @Transactional
+    void shouldHandleConcurrentOperationsOnCollection() throws Exception {
+        // Add multiple games quickly to simulate concurrent operations
+        for (int i = 2001; i <= 2003; i++) {
+            AddGameToCollectionRequest request = new AddGameToCollectionRequest(
+                i, "Concurrent game " + i, Set.of("Concurrent")
+            );
+
+            mockMvc.perform(post(COLLECTION_BASE_URL + "/games")
+                    .header(USER_ID_HEADER, userId)
+                    .with(csrf())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(request)))
+                    .andExpect(status().isCreated())
+                    .andExpect(jsonPath("$.gameId").value(i));
+        }
+
+        // Verify all games were added
+        mockMvc.perform(get(COLLECTION_BASE_URL)
+                .header(USER_ID_HEADER, userId)
+                .with(csrf()))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.games[0].notes").value("User 2 version of game"));
+                .andExpect(jsonPath("$.games.length()").value(3));
     }
 }

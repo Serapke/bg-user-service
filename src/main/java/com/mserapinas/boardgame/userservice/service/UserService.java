@@ -26,59 +26,57 @@ public class UserService {
     private final UserRepository userRepository;
     private final UserBoardGameRepository userBoardGameRepository;
     private final LabelRepository labelRepository;
-    private final UserContextService userContextService;
 
-    public UserService(UserRepository userRepository, UserBoardGameRepository userBoardGameRepository, LabelRepository labelRepository, UserContextService userContextService) {
+    public UserService(UserRepository userRepository, UserBoardGameRepository userBoardGameRepository, LabelRepository labelRepository) {
         this.userRepository = userRepository;
         this.userBoardGameRepository = userBoardGameRepository;
         this.labelRepository = labelRepository;
-        this.userContextService = userContextService;
     }
 
     @Transactional
-    public User updateCurrentUserProfile(UpdateUserProfileRequest request) {
-        User currentUser = userContextService.getCurrentUser()
+    public User updateUserProfile(Long userId, UpdateUserProfileRequest request) {
+        User user = userRepository.findById(userId)
             .orElseThrow(InvalidCredentialsException::new);
-        
-        currentUser.setName(request.name());
-        return userRepository.save(currentUser);
+
+        user.setName(request.name());
+        return userRepository.save(user);
     }
 
-    public GameCollectionDto getCurrentUserGameCollection() {
-        User currentUser = userContextService.getCurrentUser()
-            .orElseThrow(InvalidCredentialsException::new);
-        
-        List<GameCollectionItemDto> games = userBoardGameRepository.findByUserIdWithLabels(currentUser.getId())
+    public GameCollectionDto getUserGameCollection(Long userId) {
+        if (!userRepository.existsById(userId)) {
+            throw new InvalidCredentialsException();
+        }
+
+        List<GameCollectionItemDto> games = userBoardGameRepository.findByUserIdWithLabels(userId)
             .stream()
             .map(GameCollectionItemDto::from)
             .toList();
-        
+
         return GameCollectionDto.from(games);
     }
 
     @Transactional
-    public GameCollectionItemDto addGameToCollection(AddGameToCollectionRequest request) {
-        User currentUser = userContextService.getCurrentUser()
-            .orElseThrow(InvalidCredentialsException::new);
-        
-        // Check if game already exists in user's collection (efficient query)
-        if (userBoardGameRepository.existsByUserIdAndGameId(currentUser.getId(), request.gameId())) {
+    public GameCollectionItemDto addGameToCollection(Long userId, AddGameToCollectionRequest request) {
+        if (!userRepository.existsById(userId)) {
+            throw new InvalidCredentialsException();
+        }
+
+        if (userBoardGameRepository.existsByUserIdAndGameId(userId, request.gameId())) {
             throw new IllegalArgumentException("Game already exists in your collection");
         }
-        
+
         UserBoardGame userBoardGame = new UserBoardGame(
-            currentUser.getId(), 
-            request.gameId(), 
+            userId,
+            request.gameId(),
             request.notes()
         );
         userBoardGame.setModifiedAt(OffsetDateTime.now());
-        
-        // Handle labels if provided
+
         if (request.labelNames() != null && !request.labelNames().isEmpty()) {
-            Set<Label> labels = processLabels(currentUser.getId(), request.labelNames());
+            Set<Label> labels = processLabels(userId, request.labelNames());
             userBoardGame.setLabels(labels);
         }
-        
+
         UserBoardGame savedGame = userBoardGameRepository.save(userBoardGame);
         return GameCollectionItemDto.from(savedGame);
     }
@@ -106,43 +104,44 @@ public class UserService {
     }
 
     @Transactional
-    public void deleteGameFromCollection(Integer gameId) {
-        User currentUser = userContextService.getCurrentUser()
-            .orElseThrow(InvalidCredentialsException::new);
-        
-        // Check if game exists in user's collection
-        if (!userBoardGameRepository.existsByUserIdAndGameId(currentUser.getId(), gameId)) {
+    public void deleteGameFromCollection(Long userId, Integer gameId) {
+        if (!userRepository.existsById(userId)) {
+            throw new InvalidCredentialsException();
+        }
+
+        if (!userBoardGameRepository.existsByUserIdAndGameId(userId, gameId)) {
             throw new IllegalArgumentException("Game not found in your collection");
         }
-        
-        userBoardGameRepository.deleteByUserIdAndGameId(currentUser.getId(), gameId);
+
+        userBoardGameRepository.deleteByUserIdAndGameId(userId, gameId);
     }
 
     @Transactional
-    public GameCollectionItemDto updateGameInCollection(Integer gameId, UpdateGameCollectionRequest request) {
-        User currentUser = userContextService.getCurrentUser()
-            .orElseThrow(InvalidCredentialsException::new);
-        
-        UserBoardGame userBoardGame = userBoardGameRepository.findByUserIdAndGameIdWithLabels(currentUser.getId(), gameId)
+    public GameCollectionItemDto updateGameInCollection(Long userId, Integer gameId, UpdateGameCollectionRequest request) {
+        if (!userRepository.existsById(userId)) {
+            throw new InvalidCredentialsException();
+        }
+
+        UserBoardGame userBoardGame = userBoardGameRepository.findByUserIdAndGameIdWithLabels(userId, gameId)
             .orElseThrow(() -> new IllegalArgumentException("Game not found in your collection"));
-        
+
         userBoardGame.setNotes(request.notes());
         userBoardGame.setModifiedAt(OffsetDateTime.now());
-        
+
         if (request.labelNames() != null) {
-            Set<Label> labels = processLabels(currentUser.getId(), request.labelNames());
+            Set<Label> labels = processLabels(userId, request.labelNames());
             userBoardGame.setLabels(labels);
         }
-        
+
         UserBoardGame savedGame = userBoardGameRepository.save(userBoardGame);
         return GameCollectionItemDto.from(savedGame);
     }
 
     @Transactional
-    public void deleteCurrentUserAccount() {
-        User currentUser = userContextService.getCurrentUser()
+    public void deleteUserAccount(Long userId) {
+        User user = userRepository.findById(userId)
             .orElseThrow(InvalidCredentialsException::new);
-        
-        userRepository.delete(currentUser);
+
+        userRepository.delete(user);
     }
 }

@@ -39,13 +39,7 @@ class CollectionControllerTest {
     private UserService userService;
 
     @MockitoBean
-    private com.mserapinas.boardgame.userservice.service.JwtService jwtService;
-
-    @MockitoBean
     private com.mserapinas.boardgame.userservice.repository.UserRepository userRepository;
-
-    @MockitoBean
-    private com.mserapinas.boardgame.userservice.service.UserContextService userContextService;
 
     @MockitoBean
     private com.mserapinas.boardgame.userservice.repository.UserBoardGameRepository userBoardGameRepository;
@@ -53,7 +47,9 @@ class CollectionControllerTest {
     @MockitoBean
     private com.mserapinas.boardgame.userservice.repository.LabelRepository labelRepository;
 
-    private static final String BASE_URL = "/api/v1/collection";
+    private static final String BASE_URL = "/api/v1/collections";
+    private static final String USER_ID_HEADER = "X-User-ID";
+    private static final Long TEST_USER_ID = 1L;
 
     @Test
     @DisplayName("Should get current user game collection successfully")
@@ -63,10 +59,11 @@ class CollectionControllerTest {
             1L, 1001, "Great game", OffsetDateTime.now(), Set.of(labelDto)
         );
         GameCollectionDto collection = new GameCollectionDto(List.of(gameItem));
-        
-        when(userService.getCurrentUserGameCollection()).thenReturn(collection);
-        
-        mockMvc.perform(get(BASE_URL))
+
+        when(userService.getUserGameCollection(TEST_USER_ID)).thenReturn(collection);
+
+        mockMvc.perform(get(BASE_URL)
+                .header(USER_ID_HEADER, TEST_USER_ID))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.games").isArray())
@@ -75,20 +72,28 @@ class CollectionControllerTest {
                 .andExpect(jsonPath("$.games[0].notes").value("Great game"))
                 .andExpect(jsonPath("$.games[0].labels[0].id").value(1L))
                 .andExpect(jsonPath("$.games[0].labels[0].name").value("Strategy"));
-        
-        verify(userService).getCurrentUserGameCollection();
+
+        verify(userService).getUserGameCollection(TEST_USER_ID);
     }
 
     @Test
-    @DisplayName("Should return unauthorized when not authenticated")
-    void shouldReturnUnauthorizedWhenNotAuthenticated() throws Exception {
-        when(userService.getCurrentUserGameCollection())
-            .thenThrow(new com.mserapinas.boardgame.userservice.exception.InvalidCredentialsException());
-        
+    @DisplayName("Should return bad request when getting collection without X-User-ID header")
+    void shouldReturnBadRequestWhenGettingCollectionWithoutHeader() throws Exception {
         mockMvc.perform(get(BASE_URL))
+                .andExpect(status().isBadRequest()); // Missing required header
+    }
+
+    @Test
+    @DisplayName("Should return unauthorized when user not found")
+    void shouldReturnUnauthorizedWhenUserNotFound() throws Exception {
+        when(userService.getUserGameCollection(TEST_USER_ID))
+            .thenThrow(new com.mserapinas.boardgame.userservice.exception.InvalidCredentialsException());
+
+        mockMvc.perform(get(BASE_URL)
+                .header(USER_ID_HEADER, TEST_USER_ID))
                 .andExpect(status().isUnauthorized());
-        
-        verify(userService).getCurrentUserGameCollection();
+
+        verify(userService).getUserGameCollection(TEST_USER_ID);
     }
 
     @Test
@@ -97,15 +102,16 @@ class CollectionControllerTest {
         AddGameToCollectionRequest request = new AddGameToCollectionRequest(
             1001, "New game notes", Set.of("Strategy", "Family")
         );
-        
+
         LabelDto labelDto = new LabelDto(1L, "Strategy");
         GameCollectionItemDto responseItem = new GameCollectionItemDto(
             1L, 1001, "New game notes", OffsetDateTime.now(), Set.of(labelDto)
         );
-        
-        when(userService.addGameToCollection(any(AddGameToCollectionRequest.class))).thenReturn(responseItem);
-        
+
+        when(userService.addGameToCollection(eq(TEST_USER_ID), any(AddGameToCollectionRequest.class))).thenReturn(responseItem);
+
         mockMvc.perform(post(BASE_URL + "/games")
+                .header(USER_ID_HEADER, TEST_USER_ID)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
@@ -114,8 +120,23 @@ class CollectionControllerTest {
                 .andExpect(jsonPath("$.gameId").value(1001))
                 .andExpect(jsonPath("$.notes").value("New game notes"))
                 .andExpect(jsonPath("$.labels[0].name").value("Strategy"));
-        
-        verify(userService).addGameToCollection(any(AddGameToCollectionRequest.class));
+
+        verify(userService).addGameToCollection(eq(TEST_USER_ID), any(AddGameToCollectionRequest.class));
+    }
+
+    @Test
+    @DisplayName("Should return bad request when adding game without X-User-ID header")
+    void shouldReturnBadRequestWhenAddingGameWithoutHeader() throws Exception {
+        AddGameToCollectionRequest request = new AddGameToCollectionRequest(
+            1001, "New game notes", Set.of("Strategy")
+        );
+
+        mockMvc.perform(post(BASE_URL + "/games")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest()); // Missing required header
+
+        verify(userService, never()).addGameToCollection(any(Long.class), any(AddGameToCollectionRequest.class));
     }
 
     @Test
@@ -124,13 +145,14 @@ class CollectionControllerTest {
         AddGameToCollectionRequest invalidRequest = new AddGameToCollectionRequest(
             null, "Notes", Set.of() // gameId is null
         );
-        
+
         mockMvc.perform(post(BASE_URL + "/games")
+                .header(USER_ID_HEADER, TEST_USER_ID)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(invalidRequest)))
                 .andExpect(status().isBadRequest());
-        
-        verify(userService, never()).addGameToCollection(any(AddGameToCollectionRequest.class));
+
+        verify(userService, never()).addGameToCollection(any(Long.class), any(AddGameToCollectionRequest.class));
     }
 
     @Test
@@ -139,13 +161,14 @@ class CollectionControllerTest {
         AddGameToCollectionRequest invalidRequest = new AddGameToCollectionRequest(
             -1, "Notes", Set.of()
         );
-        
+
         mockMvc.perform(post(BASE_URL + "/games")
+                .header(USER_ID_HEADER, TEST_USER_ID)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(invalidRequest)))
                 .andExpect(status().isBadRequest());
-        
-        verify(userService, never()).addGameToCollection(any(AddGameToCollectionRequest.class));
+
+        verify(userService, never()).addGameToCollection(any(Long.class), any(AddGameToCollectionRequest.class));
     }
 
     @Test
@@ -155,16 +178,17 @@ class CollectionControllerTest {
         UpdateGameCollectionRequest request = new UpdateGameCollectionRequest(
             "Updated notes", Set.of("Updated", "Strategy")
         );
-        
+
         LabelDto labelDto = new LabelDto(1L, "Updated");
         GameCollectionItemDto responseItem = new GameCollectionItemDto(
             1L, gameId, "Updated notes", OffsetDateTime.now(), Set.of(labelDto)
         );
-        
-        when(userService.updateGameInCollection(eq(gameId), any(UpdateGameCollectionRequest.class)))
+
+        when(userService.updateGameInCollection(eq(TEST_USER_ID), eq(gameId), any(UpdateGameCollectionRequest.class)))
             .thenReturn(responseItem);
-        
+
         mockMvc.perform(put(BASE_URL + "/games/" + gameId)
+                .header(USER_ID_HEADER, TEST_USER_ID)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
@@ -173,8 +197,24 @@ class CollectionControllerTest {
                 .andExpect(jsonPath("$.gameId").value(gameId))
                 .andExpect(jsonPath("$.notes").value("Updated notes"))
                 .andExpect(jsonPath("$.labels[0].name").value("Updated"));
-        
-        verify(userService).updateGameInCollection(eq(gameId), any(UpdateGameCollectionRequest.class));
+
+        verify(userService).updateGameInCollection(eq(TEST_USER_ID), eq(gameId), any(UpdateGameCollectionRequest.class));
+    }
+
+    @Test
+    @DisplayName("Should return bad request when updating game without X-User-ID header")
+    void shouldReturnBadRequestWhenUpdatingGameWithoutHeader() throws Exception {
+        Integer gameId = 1001;
+        UpdateGameCollectionRequest request = new UpdateGameCollectionRequest(
+            "Updated notes", Set.of("Updated")
+        );
+
+        mockMvc.perform(put(BASE_URL + "/games/" + gameId)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest()); // Missing required header
+
+        verify(userService, never()).updateGameInCollection(any(Long.class), anyInt(), any(UpdateGameCollectionRequest.class));
     }
 
     @Test
@@ -185,13 +225,14 @@ class CollectionControllerTest {
         UpdateGameCollectionRequest invalidRequest = new UpdateGameCollectionRequest(
             longNotes, Set.of()
         );
-        
+
         mockMvc.perform(put(BASE_URL + "/games/" + gameId)
+                .header(USER_ID_HEADER, TEST_USER_ID)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(invalidRequest)))
                 .andExpect(status().isBadRequest());
-        
-        verify(userService, never()).updateGameInCollection(anyInt(), any(UpdateGameCollectionRequest.class));
+
+        verify(userService, never()).updateGameInCollection(any(Long.class), anyInt(), any(UpdateGameCollectionRequest.class));
     }
 
     @Test
@@ -202,40 +243,54 @@ class CollectionControllerTest {
         UpdateGameCollectionRequest invalidRequest = new UpdateGameCollectionRequest(
             "Notes", tooManyLabels
         );
-        
+
         mockMvc.perform(put(BASE_URL + "/games/" + gameId)
+                .header(USER_ID_HEADER, TEST_USER_ID)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(invalidRequest)))
                 .andExpect(status().isBadRequest());
-        
-        verify(userService, never()).updateGameInCollection(anyInt(), any(UpdateGameCollectionRequest.class));
+
+        verify(userService, never()).updateGameInCollection(any(Long.class), anyInt(), any(UpdateGameCollectionRequest.class));
     }
 
     @Test
     @DisplayName("Should delete game from collection successfully")
     void shouldDeleteGameFromCollectionSuccessfully() throws Exception {
         Integer gameId = 1001;
-        
-        doNothing().when(userService).deleteGameFromCollection(gameId);
-        
-        mockMvc.perform(delete(BASE_URL + "/games/" + gameId))
+
+        doNothing().when(userService).deleteGameFromCollection(TEST_USER_ID, gameId);
+
+        mockMvc.perform(delete(BASE_URL + "/games/" + gameId)
+                .header(USER_ID_HEADER, TEST_USER_ID))
                 .andExpect(status().isNoContent());
-        
-        verify(userService).deleteGameFromCollection(gameId);
+
+        verify(userService).deleteGameFromCollection(TEST_USER_ID, gameId);
+    }
+
+    @Test
+    @DisplayName("Should return bad request when deleting game without X-User-ID header")
+    void shouldReturnBadRequestWhenDeletingGameWithoutHeader() throws Exception {
+        Integer gameId = 1001;
+
+        mockMvc.perform(delete(BASE_URL + "/games/" + gameId))
+                .andExpect(status().isBadRequest()); // Missing required header
+
+        verify(userService, never()).deleteGameFromCollection(any(Long.class), anyInt());
     }
 
     @Test
     @DisplayName("Should return bad request when service throws IllegalArgumentException")
     void shouldReturnBadRequestWhenServiceThrowsIllegalArgumentException() throws Exception {
         Integer gameId = 1001;
-        
+
         doThrow(new IllegalArgumentException("Game not found in your collection"))
-            .when(userService).deleteGameFromCollection(gameId);
-        
-        mockMvc.perform(delete(BASE_URL + "/games/" + gameId))
+            .when(userService).deleteGameFromCollection(TEST_USER_ID, gameId);
+
+        mockMvc.perform(delete(BASE_URL + "/games/" + gameId)
+                .header(USER_ID_HEADER, TEST_USER_ID))
                 .andExpect(status().isBadRequest());
-        
-        verify(userService).deleteGameFromCollection(gameId);
+
+        verify(userService).deleteGameFromCollection(TEST_USER_ID, gameId);
     }
 
     @Test
@@ -244,16 +299,17 @@ class CollectionControllerTest {
         AddGameToCollectionRequest request = new AddGameToCollectionRequest(
             1001, "Duplicate game", Set.of()
         );
-        
-        when(userService.addGameToCollection(any(AddGameToCollectionRequest.class)))
+
+        when(userService.addGameToCollection(eq(TEST_USER_ID), any(AddGameToCollectionRequest.class)))
             .thenThrow(new IllegalArgumentException("Game already exists in your collection"));
-        
+
         mockMvc.perform(post(BASE_URL + "/games")
+                .header(USER_ID_HEADER, TEST_USER_ID)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
-        
-        verify(userService).addGameToCollection(any(AddGameToCollectionRequest.class));
+
+        verify(userService).addGameToCollection(eq(TEST_USER_ID), any(AddGameToCollectionRequest.class));
     }
 
     @Test
@@ -263,16 +319,17 @@ class CollectionControllerTest {
         UpdateGameCollectionRequest request = new UpdateGameCollectionRequest(
             "Updated notes", Set.of()
         );
-        
-        when(userService.updateGameInCollection(eq(gameId), any(UpdateGameCollectionRequest.class)))
+
+        when(userService.updateGameInCollection(eq(TEST_USER_ID), eq(gameId), any(UpdateGameCollectionRequest.class)))
             .thenThrow(new IllegalArgumentException("Game not found in your collection"));
-        
+
         mockMvc.perform(put(BASE_URL + "/games/" + gameId)
+                .header(USER_ID_HEADER, TEST_USER_ID)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
-        
-        verify(userService).updateGameInCollection(eq(gameId), any(UpdateGameCollectionRequest.class));
+
+        verify(userService).updateGameInCollection(eq(TEST_USER_ID), eq(gameId), any(UpdateGameCollectionRequest.class));
     }
 
     @Test
@@ -281,20 +338,21 @@ class CollectionControllerTest {
         AddGameToCollectionRequest request = new AddGameToCollectionRequest(
             1001, null, null // notes and labelNames are optional
         );
-        
+
         LabelDto labelDto = new LabelDto(1L, "Default");
         GameCollectionItemDto responseItem = new GameCollectionItemDto(
             1L, 1001, null, OffsetDateTime.now(), Set.of(labelDto)
         );
-        
-        when(userService.addGameToCollection(any(AddGameToCollectionRequest.class))).thenReturn(responseItem);
-        
+
+        when(userService.addGameToCollection(eq(TEST_USER_ID), any(AddGameToCollectionRequest.class))).thenReturn(responseItem);
+
         mockMvc.perform(post(BASE_URL + "/games")
+                .header(USER_ID_HEADER, TEST_USER_ID)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated());
-        
-        verify(userService).addGameToCollection(any(AddGameToCollectionRequest.class));
+
+        verify(userService).addGameToCollection(eq(TEST_USER_ID), any(AddGameToCollectionRequest.class));
     }
 
     @Test
@@ -304,19 +362,28 @@ class CollectionControllerTest {
         UpdateGameCollectionRequest request = new UpdateGameCollectionRequest(
             null, null // both fields are optional
         );
-        
+
         GameCollectionItemDto responseItem = new GameCollectionItemDto(
             1L, gameId, null, OffsetDateTime.now(), Set.of()
         );
-        
-        when(userService.updateGameInCollection(eq(gameId), any(UpdateGameCollectionRequest.class)))
+
+        when(userService.updateGameInCollection(eq(TEST_USER_ID), eq(gameId), any(UpdateGameCollectionRequest.class)))
             .thenReturn(responseItem);
-        
+
         mockMvc.perform(put(BASE_URL + "/games/" + gameId)
+                .header(USER_ID_HEADER, TEST_USER_ID)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk());
-        
-        verify(userService).updateGameInCollection(eq(gameId), any(UpdateGameCollectionRequest.class));
+
+        verify(userService).updateGameInCollection(eq(TEST_USER_ID), eq(gameId), any(UpdateGameCollectionRequest.class));
+    }
+
+    @Test
+    @DisplayName("Should handle invalid user ID format in header")
+    void shouldHandleInvalidUserIdFormatInHeader() throws Exception {
+        mockMvc.perform(get(BASE_URL)
+                .header(USER_ID_HEADER, "invalid-id"))
+                .andExpect(status().isBadRequest()); // Invalid user ID format
     }
 }
