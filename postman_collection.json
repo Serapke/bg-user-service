@@ -1,8 +1,8 @@
 {
 	"info": {
 		"_postman_id": "board-game-planner-user-service",
-		"name": "Board Game Planner User Service",
-		"description": "API collection for the Board Game Planner User Service. Authentication is handled by API Gateway via X-User-ID header.",
+		"name": "User Service API",
+		"description": "API collection for the User Service. Authentication is handled by API Gateway via X-User-ID header.",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 	},
 	"variable": [
@@ -13,7 +13,7 @@
 		},
 		{
 			"key": "user_id",
-			"value": "1",
+			"value": "2",
 			"type": "string"
 		}
 	],
@@ -453,7 +453,7 @@
 							"path": [
 								"api",
 								"v1",
-								"collection"
+								"collections"
 							]
 						},
 						"description": "Get the board game collection for the current user, including game details, notes, labels, and modification dates. Requires X-User-ID header."
@@ -477,7 +477,7 @@
 									"path": [
 										"api",
 										"v1",
-										"collection"
+										"collections"
 									]
 								}
 							},
@@ -522,7 +522,7 @@
 							"path": [
 								"api",
 								"v1",
-								"collection",
+								"collections",
 								"games"
 							]
 						},
@@ -555,7 +555,7 @@
 									"path": [
 										"api",
 										"v1",
-										"collection",
+										"collections",
 										"games"
 									]
 								}
@@ -606,7 +606,7 @@
 							"path": [
 								"api",
 								"v1",
-								"collection",
+								"collections",
 								"games",
 								"1001"
 							]
@@ -645,7 +645,7 @@
 									"path": [
 										"api",
 										"v1",
-										"collection",
+										"collections",
 										"games",
 										"1001"
 									]
@@ -684,7 +684,7 @@
 							"path": [
 								"api",
 								"v1",
-								"collection",
+								"collections",
 								"games",
 								"1001"
 							]
@@ -710,7 +710,7 @@
 									"path": [
 										"api",
 										"v1",
-										"collection",
+										"collections",
 										"games",
 										"1001"
 									]
