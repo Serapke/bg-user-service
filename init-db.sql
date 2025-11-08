@@ -55,20 +55,6 @@ VALUES
     ('bob@example.com', 'Bob', '$2a$10$8K1p/a0dQ2TQxa21LDbODeAmhltJL0.pCGhrtwEzMo2vREQpgS8TG')
 ON CONFLICT (email) DO NOTHING;
 
--- Labels per user
-INSERT INTO labels (user_id, name)
-SELECT u.id, v.label_name
-FROM (
-    VALUES
-        ('alice@example.com', 'Strategy'),
-        ('alice@example.com', 'Family'),
-        ('alice@example.com', 'Co-op'),
-        ('bob@example.com', 'Strategy'),
-        ('bob@example.com', 'Family')
-) AS v(email, label_name)
-JOIN users u ON u.email = v.email
-ON CONFLICT (user_id, name) DO NOTHING;
-
 -- User board games
 INSERT INTO user_board_games (user_id, game_id, notes)
 SELECT u.id, v.game_id, v.notes
@@ -81,19 +67,3 @@ FROM (
 ) AS v(email, game_id, notes)
 JOIN users u ON u.email = v.email
 ON CONFLICT (user_id, game_id) DO NOTHING;
-
--- Link labels to user board games
-INSERT INTO user_board_game_labels (user_board_game_id, label_id)
-SELECT ubg.id, l.id
-FROM (
-    VALUES
-        ('alice@example.com', 1001, 'Strategy'),
-        ('alice@example.com', 1001, 'Family'),
-        ('alice@example.com', 1002, 'Co-op'),
-        ('bob@example.com', 2001, 'Strategy'),
-        ('bob@example.com', 2002, 'Family')
-) AS v(email, game_id, label_name)
-JOIN users u ON u.email = v.email
-JOIN user_board_games ubg ON ubg.user_id = u.id AND ubg.game_id = v.game_id
-JOIN labels l ON l.user_id = u.id AND l.name = v.label_name
-ON CONFLICT DO NOTHING;
