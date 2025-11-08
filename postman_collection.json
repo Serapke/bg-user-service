@@ -727,6 +727,395 @@
 				}
 			],
 			"description": "Endpoints for managing and retrieving the user's board game collection using X-User-ID header"
+		},
+		{
+			"name": "Reviews",
+			"item": [
+				{
+					"name": "Create Review",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "X-User-ID",
+								"value": "{{user_id}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"gameId\": 1001,\n    \"rating\": 5,\n    \"reviewText\": \"Amazing game! Perfect for game nights with friends.\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/reviews",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"reviews"
+							]
+						},
+						"description": "Create a review for any board game. Rating (1-5) is required, review text is optional. Users can review games not in their collection. Requires X-User-ID header."
+					},
+					"response": [
+						{
+							"name": "Review Created Successfully",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									},
+									{
+										"key": "X-User-ID",
+										"value": "1"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"gameId\": 1001,\n    \"rating\": 5,\n    \"reviewText\": \"Amazing game! Perfect for game nights with friends.\"\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/v1/reviews",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"reviews"
+									]
+								}
+							},
+							"status": "Created",
+							"code": 201,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"id\": 1,\n    \"userId\": 1,\n    \"userName\": \"Alice\",\n    \"gameId\": 1001,\n    \"rating\": 5,\n    \"reviewText\": \"Amazing game! Perfect for game nights with friends.\",\n    \"createdAt\": \"2024-12-20T10:30:00Z\",\n    \"updatedAt\": \"2024-12-20T10:30:00Z\"\n}"
+						}
+					]
+				},
+				{
+					"name": "Get Review by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/reviews/1",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"reviews",
+								"1"
+							]
+						},
+						"description": "Get a specific review by its ID. No authentication required."
+					},
+					"response": [
+						{
+							"name": "Review Found",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/api/v1/reviews/1",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"reviews",
+										"1"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"id\": 1,\n    \"userId\": 1,\n    \"userName\": \"Alice\",\n    \"gameId\": 1001,\n    \"rating\": 5,\n    \"reviewText\": \"Amazing game! Perfect for game nights with friends.\",\n    \"createdAt\": \"2024-12-20T10:30:00Z\",\n    \"updatedAt\": \"2024-12-20T10:30:00Z\"\n}"
+						}
+					]
+				},
+				{
+					"name": "Get Current User Reviews",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "X-User-ID",
+								"value": "{{user_id}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/reviews/me",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"reviews",
+								"me"
+							]
+						},
+						"description": "Get all reviews created by the current user. Requires X-User-ID header."
+					},
+					"response": [
+						{
+							"name": "User Reviews",
+							"originalRequest": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "X-User-ID",
+										"value": "1"
+									}
+								],
+								"url": {
+									"raw": "{{base_url}}/api/v1/reviews/me",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"reviews",
+										"me"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"cookie": [],
+							"body": "[\n    {\n        \"id\": 1,\n        \"userId\": 1,\n        \"userName\": \"Alice\",\n        \"gameId\": 1001,\n        \"rating\": 5,\n        \"reviewText\": \"Amazing game! Perfect for game nights with friends.\",\n        \"createdAt\": \"2024-12-20T10:30:00Z\",\n        \"updatedAt\": \"2024-12-20T10:30:00Z\"\n    },\n    {\n        \"id\": 2,\n        \"userId\": 1,\n        \"userName\": \"Alice\",\n        \"gameId\": 1002,\n        \"rating\": 4,\n        \"reviewText\": \"Great legacy experience!\",\n        \"createdAt\": \"2024-12-19T15:00:00Z\",\n        \"updatedAt\": \"2024-12-19T15:00:00Z\"\n    }\n]"
+						}
+					]
+				},
+				{
+					"name": "Get Reviews for Game",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/reviews/games/1001",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"reviews",
+								"games",
+								"1001"
+							]
+						},
+						"description": "Get all reviews for a specific game, including average rating and total review count. No authentication required."
+					},
+					"response": [
+						{
+							"name": "Game Reviews with Stats",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/api/v1/reviews/games/1001",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"reviews",
+										"games",
+										"1001"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"reviews\": [\n        {\n            \"id\": 1,\n            \"userId\": 1,\n            \"userName\": \"Alice\",\n            \"gameId\": 1001,\n            \"rating\": 5,\n            \"reviewText\": \"Amazing game! Perfect for game nights with friends.\",\n            \"createdAt\": \"2024-12-20T10:30:00Z\",\n            \"updatedAt\": \"2024-12-20T10:30:00Z\"\n        },\n        {\n            \"id\": 5,\n            \"userId\": 2,\n            \"userName\": \"Bob\",\n            \"gameId\": 1001,\n            \"rating\": 4,\n            \"reviewText\": \"Solid game, though a bit too complex for casual players.\",\n            \"createdAt\": \"2024-12-19T14:00:00Z\",\n            \"updatedAt\": \"2024-12-19T14:00:00Z\"\n        }\n    ],\n    \"totalCount\": 2,\n    \"averageRating\": 4.5\n}"
+						}
+					]
+				},
+				{
+					"name": "Update Review",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "X-User-ID",
+								"value": "{{user_id}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"rating\": 4,\n    \"reviewText\": \"Updated review text. Still a great game but lowering rating slightly.\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/reviews/1",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"reviews",
+								"1"
+							]
+						},
+						"description": "Update an existing review. Only the review owner can update it. Rating is required, review text is optional. Requires X-User-ID header."
+					},
+					"response": [
+						{
+							"name": "Review Updated Successfully",
+							"originalRequest": {
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									},
+									{
+										"key": "X-User-ID",
+										"value": "1"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"rating\": 4,\n    \"reviewText\": \"Updated review text. Still a great game but lowering rating slightly.\"\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/v1/reviews/1",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"reviews",
+										"1"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"id\": 1,\n    \"userId\": 1,\n    \"userName\": \"Alice\",\n    \"gameId\": 1001,\n    \"rating\": 4,\n    \"reviewText\": \"Updated review text. Still a great game but lowering rating slightly.\",\n    \"createdAt\": \"2024-12-20T10:30:00Z\",\n    \"updatedAt\": \"2024-12-20T14:45:00Z\"\n}"
+						}
+					]
+				},
+				{
+					"name": "Delete Review",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "X-User-ID",
+								"value": "{{user_id}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/reviews/1",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"reviews",
+								"1"
+							]
+						},
+						"description": "Delete a review. Only the review owner can delete it. Requires X-User-ID header."
+					},
+					"response": [
+						{
+							"name": "Review Deleted Successfully",
+							"originalRequest": {
+								"method": "DELETE",
+								"header": [
+									{
+										"key": "X-User-ID",
+										"value": "1"
+									}
+								],
+								"url": {
+									"raw": "{{base_url}}/api/v1/reviews/1",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"reviews",
+										"1"
+									]
+								}
+							},
+							"status": "No Content",
+							"code": 204,
+							"_postman_previewlanguage": "text",
+							"header": [],
+							"cookie": [],
+							"body": ""
+						}
+					]
+				}
+			],
+			"description": "Endpoints for creating, reading, updating, and deleting board game reviews. Users can review any game, not just games in their collection."
 		}
 	]
 }
