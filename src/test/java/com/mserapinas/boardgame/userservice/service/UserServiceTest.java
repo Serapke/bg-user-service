@@ -10,6 +10,7 @@ import com.mserapinas.boardgame.userservice.model.Label;
 import com.mserapinas.boardgame.userservice.model.User;
 import com.mserapinas.boardgame.userservice.model.UserBoardGame;
 import com.mserapinas.boardgame.userservice.repository.LabelRepository;
+import com.mserapinas.boardgame.userservice.repository.ReviewRepository;
 import com.mserapinas.boardgame.userservice.repository.UserBoardGameRepository;
 import com.mserapinas.boardgame.userservice.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -40,6 +41,9 @@ class UserServiceTest {
     @Mock
     private LabelRepository labelRepository;
 
+    @Mock
+    private ReviewRepository reviewRepository;
+
     private UserService userService;
 
     private User testUser;
@@ -49,7 +53,7 @@ class UserServiceTest {
 
     @BeforeEach
     void setUp() {
-        userService = new UserService(userRepository, userBoardGameRepository, labelRepository);
+        userService = new UserService(userRepository, userBoardGameRepository, labelRepository, reviewRepository);
 
         testUser = new User();
         testUser.setId(TEST_USER_ID);
@@ -132,15 +136,20 @@ class UserServiceTest {
         Integer gameId = 1002;
         AddGameToCollectionRequest request = new AddGameToCollectionRequest(gameId, "New game", Set.of("Action"));
 
+        UserBoardGame savedGame = new UserBoardGame(TEST_USER_ID, gameId, "New game");
+        savedGame.setId(1L);
+        savedGame.setModifiedAt(OffsetDateTime.now());
+
         when(userRepository.existsById(TEST_USER_ID)).thenReturn(true);
         when(userBoardGameRepository.existsByUserIdAndGameId(TEST_USER_ID, gameId)).thenReturn(false);
         when(labelRepository.findByUserIdAndNameIn(TEST_USER_ID, request.labelNames())).thenReturn(List.of());
-        when(userBoardGameRepository.save(any(UserBoardGame.class))).thenReturn(testUserBoardGame);
+        when(userBoardGameRepository.save(any(UserBoardGame.class))).thenReturn(savedGame);
+        when(reviewRepository.findByUserIdAndGameId(TEST_USER_ID, gameId)).thenReturn(Optional.empty());
 
         GameCollectionItemDto result = userService.addGameToCollection(TEST_USER_ID, request);
 
         assertNotNull(result);
-        assertEquals(1L, result.id());
+        assertEquals(gameId, result.gameId());
 
         verify(userRepository).existsById(TEST_USER_ID);
         verify(userBoardGameRepository).existsByUserIdAndGameId(TEST_USER_ID, gameId);

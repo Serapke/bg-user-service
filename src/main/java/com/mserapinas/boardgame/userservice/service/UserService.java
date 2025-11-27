@@ -7,9 +7,11 @@ import com.mserapinas.boardgame.userservice.dto.response.GameCollectionDto;
 import com.mserapinas.boardgame.userservice.dto.response.GameCollectionItemDto;
 import com.mserapinas.boardgame.userservice.exception.InvalidCredentialsException;
 import com.mserapinas.boardgame.userservice.model.Label;
+import com.mserapinas.boardgame.userservice.model.Review;
 import com.mserapinas.boardgame.userservice.model.User;
 import com.mserapinas.boardgame.userservice.model.UserBoardGame;
 import com.mserapinas.boardgame.userservice.repository.LabelRepository;
+import com.mserapinas.boardgame.userservice.repository.ReviewRepository;
 import com.mserapinas.boardgame.userservice.repository.UserBoardGameRepository;
 import com.mserapinas.boardgame.userservice.repository.UserRepository;
 import jakarta.transaction.Transactional;
@@ -18,7 +20,10 @@ import org.springframework.stereotype.Service;
 import java.time.OffsetDateTime;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+
+import static java.util.stream.Collectors.toMap;
 
 @Service
 public class UserService {
@@ -26,11 +31,14 @@ public class UserService {
     private final UserRepository userRepository;
     private final UserBoardGameRepository userBoardGameRepository;
     private final LabelRepository labelRepository;
+    private final ReviewRepository reviewRepository;
 
-    public UserService(UserRepository userRepository, UserBoardGameRepository userBoardGameRepository, LabelRepository labelRepository) {
+    public UserService(UserRepository userRepository, UserBoardGameRepository userBoardGameRepository,
+                      LabelRepository labelRepository, ReviewRepository reviewRepository) {
         this.userRepository = userRepository;
         this.userBoardGameRepository = userBoardGameRepository;
         this.labelRepository = labelRepository;
+        this.reviewRepository = reviewRepository;
     }
 
     @Transactional
@@ -47,9 +55,17 @@ public class UserService {
             throw new InvalidCredentialsException();
         }
 
-        List<GameCollectionItemDto> games = userBoardGameRepository.findByUserIdWithLabels(userId)
-            .stream()
-            .map(GameCollectionItemDto::from)
+        List<UserBoardGame> userBoardGames = userBoardGameRepository.findByUserIdWithLabels(userId);
+
+        List<Review> userReviews = reviewRepository.findByUserIdWithUser(userId);
+
+        Map<Integer, Integer> gameRatings = userReviews.stream().collect(toMap(Review::getGameId, Review::getRating));
+
+        List<GameCollectionItemDto> games = userBoardGames.stream()
+            .map(userBoardGame -> {
+                Integer userRating = gameRatings.get(userBoardGame.getGameId());
+                return GameCollectionItemDto.from(userBoardGame, userRating);
+            })
             .toList();
 
         return GameCollectionDto.from(games);
@@ -78,9 +94,12 @@ public class UserService {
         }
 
         UserBoardGame savedGame = userBoardGameRepository.save(userBoardGame);
-        return GameCollectionItemDto.from(savedGame);
+        Integer userRating = reviewRepository.findByUserIdAndGameId(userId, request.gameId())
+            .map(Review::getRating)
+            .orElse(null);
+        return GameCollectionItemDto.from(savedGame, userRating);
     }
-    
+
     private Set<Label> processLabels(Long userId, Set<String> labelNames) {
         // Find existing labels
         List<Label> existingLabels = labelRepository.findByUserIdAndNameIn(userId, labelNames);
@@ -134,13 +153,19 @@ public class UserService {
         }
 
         UserBoardGame savedGame = userBoardGameRepository.save(userBoardGame);
-        return GameCollectionItemDto.from(savedGame);
+        Integer userRating = reviewRepository.findByUserIdAndGameId(userId, gameId)
+            .map(Review::getRating)
+            .orElse(null);
+        return GameCollectionItemDto.from(savedGame, userRating);
     }
 
     @Transactional
     public void deleteUserAccount(Long userId) {
         User user = userRepository.findById(userId)
             .orElseThrow(InvalidCredentialsException::new);
+
+        // Bulk delete all reviews to avoid N+1 problem and transient object issues
+        reviewRepository.deleteByUserId(userId);
 
         userRepository.delete(user);
     }

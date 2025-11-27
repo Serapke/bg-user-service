@@ -7,23 +7,23 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 public record GameCollectionItemDto(
-    Long id,
     Integer gameId,
     String notes,
+    Integer userRating,
     OffsetDateTime modifiedAt,
     Set<LabelDto> labels
 ) {
-    public static GameCollectionItemDto from(UserBoardGame userBoardGame) {
-        Set<LabelDto> labelDtos = userBoardGame.getLabels() != null ? 
+    public static GameCollectionItemDto from(UserBoardGame userBoardGame, Integer userRating) {
+        Set<LabelDto> labelDtos = userBoardGame.getLabels() != null ?
             userBoardGame.getLabels().stream()
                 .map(LabelDto::from)
-                .collect(Collectors.toSet()) : 
+                .collect(Collectors.toSet()) :
             Set.of();
-        
+
         return new GameCollectionItemDto(
-            userBoardGame.getId(),
             userBoardGame.getGameId(),
             userBoardGame.getNotes(),
+            userRating,
             userBoardGame.getModifiedAt(),
             labelDtos
         );

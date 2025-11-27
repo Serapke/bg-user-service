@@ -20,7 +20,7 @@ public class UserBoardGame {
     private Integer gameId;
     
     private String notes;
-    
+
     @Column(name = "modified_at")
     private OffsetDateTime modifiedAt;
     
@@ -32,6 +32,7 @@ public class UserBoardGame {
     )
     private Set<Label> labels;
     
+    @SuppressWarnings("unused")
     public UserBoardGame() {}
     
     public UserBoardGame(Long userId, Integer gameId, String notes) {

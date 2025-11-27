@@ -56,7 +56,7 @@ class CollectionControllerTest {
     void shouldGetCurrentUserGameCollectionSuccessfully() throws Exception {
         LabelDto labelDto = new LabelDto(1L, "Strategy");
         GameCollectionItemDto gameItem = new GameCollectionItemDto(
-            1L, 1001, "Great game", OffsetDateTime.now(), Set.of(labelDto)
+            1001, "Great game", 8, OffsetDateTime.now(), Set.of(labelDto)
         );
         GameCollectionDto collection = new GameCollectionDto(List.of(gameItem));
 
@@ -67,7 +67,6 @@ class CollectionControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.games").isArray())
-                .andExpect(jsonPath("$.games[0].id").value(1L))
                 .andExpect(jsonPath("$.games[0].gameId").value(1001))
                 .andExpect(jsonPath("$.games[0].notes").value("Great game"))
                 .andExpect(jsonPath("$.games[0].labels[0].id").value(1L))
@@ -105,7 +104,7 @@ class CollectionControllerTest {
 
         LabelDto labelDto = new LabelDto(1L, "Strategy");
         GameCollectionItemDto responseItem = new GameCollectionItemDto(
-            1L, 1001, "New game notes", OffsetDateTime.now(), Set.of(labelDto)
+            1001, "New game notes", null, OffsetDateTime.now(), Set.of(labelDto)
         );
 
         when(userService.addGameToCollection(eq(TEST_USER_ID), any(AddGameToCollectionRequest.class))).thenReturn(responseItem);
@@ -116,7 +115,6 @@ class CollectionControllerTest {
                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$.id").value(1L))
                 .andExpect(jsonPath("$.gameId").value(1001))
                 .andExpect(jsonPath("$.notes").value("New game notes"))
                 .andExpect(jsonPath("$.labels[0].name").value("Strategy"));
@@ -155,6 +153,7 @@ class CollectionControllerTest {
         verify(userService, never()).addGameToCollection(any(Long.class), any(AddGameToCollectionRequest.class));
     }
 
+    @SuppressWarnings("DataFlowIssue")
     @Test
     @DisplayName("Should return bad request when adding game with negative gameId")
     void shouldReturnBadRequestWhenAddingGameWithNegativeGameId() throws Exception {
@@ -181,7 +180,7 @@ class CollectionControllerTest {
 
         LabelDto labelDto = new LabelDto(1L, "Updated");
         GameCollectionItemDto responseItem = new GameCollectionItemDto(
-            1L, gameId, "Updated notes", OffsetDateTime.now(), Set.of(labelDto)
+            gameId, "Updated notes", 7, OffsetDateTime.now(), Set.of(labelDto)
         );
 
         when(userService.updateGameInCollection(eq(TEST_USER_ID), eq(gameId), any(UpdateGameCollectionRequest.class)))
@@ -193,7 +192,6 @@ class CollectionControllerTest {
                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$.id").value(1L))
                 .andExpect(jsonPath("$.gameId").value(gameId))
                 .andExpect(jsonPath("$.notes").value("Updated notes"))
                 .andExpect(jsonPath("$.labels[0].name").value("Updated"));
@@ -341,7 +339,7 @@ class CollectionControllerTest {
 
         LabelDto labelDto = new LabelDto(1L, "Default");
         GameCollectionItemDto responseItem = new GameCollectionItemDto(
-            1L, 1001, null, OffsetDateTime.now(), Set.of(labelDto)
+            1001, null, null, OffsetDateTime.now(), Set.of(labelDto)
         );
 
         when(userService.addGameToCollection(eq(TEST_USER_ID), any(AddGameToCollectionRequest.class))).thenReturn(responseItem);
@@ -364,7 +362,7 @@ class CollectionControllerTest {
         );
 
         GameCollectionItemDto responseItem = new GameCollectionItemDto(
-            1L, gameId, null, OffsetDateTime.now(), Set.of()
+            gameId, null, null, OffsetDateTime.now(), Set.of()
         );
 
         when(userService.updateGameInCollection(eq(TEST_USER_ID), eq(gameId), any(UpdateGameCollectionRequest.class)))

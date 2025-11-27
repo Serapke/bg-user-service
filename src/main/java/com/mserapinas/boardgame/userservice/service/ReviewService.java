@@ -8,6 +8,7 @@ import com.mserapinas.boardgame.userservice.exception.ReviewAlreadyExistsExcepti
 import com.mserapinas.boardgame.userservice.exception.ReviewNotFoundException;
 import com.mserapinas.boardgame.userservice.exception.UnauthorizedReviewAccessException;
 import com.mserapinas.boardgame.userservice.model.Review;
+import com.mserapinas.boardgame.userservice.model.User;
 import com.mserapinas.boardgame.userservice.repository.ReviewRepository;
 import com.mserapinas.boardgame.userservice.repository.UserRepository;
 import jakarta.transaction.Transactional;
@@ -28,16 +29,15 @@ public class ReviewService {
 
     @Transactional
     public ReviewDto createReview(Long userId, CreateReviewRequest request) {
-        if (!userRepository.existsById(userId)) {
-            throw new IllegalArgumentException("User not found");
-        }
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
         if (reviewRepository.existsByUserIdAndGameId(userId, request.gameId())) {
             throw new ReviewAlreadyExistsException(userId, request.gameId());
         }
 
         Review review = new Review(
-            userId,
+            user,
             request.gameId(),
             request.rating(),
             request.reviewText()

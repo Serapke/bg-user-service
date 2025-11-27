@@ -53,11 +53,10 @@ class ReviewServiceTest {
         testUser.setName("Test User");
         testUser.setCreatedAt(OffsetDateTime.now());
 
-        testReview = new Review(TEST_USER_ID, TEST_GAME_ID, 5, "Great game!");
+        testReview = new Review(testUser, TEST_GAME_ID, 5, "Great game!");
         testReview.setId(TEST_REVIEW_ID);
         testReview.setCreatedAt(OffsetDateTime.now());
         testReview.setUpdatedAt(OffsetDateTime.now());
-        testReview.setUser(testUser);
     }
 
     @Test
@@ -65,7 +64,7 @@ class ReviewServiceTest {
     void shouldCreateReviewSuccessfully() {
         CreateReviewRequest request = new CreateReviewRequest(TEST_GAME_ID, 5, "Great game!");
 
-        when(userRepository.existsById(TEST_USER_ID)).thenReturn(true);
+        when(userRepository.findById(TEST_USER_ID)).thenReturn(Optional.of(testUser));
         when(reviewRepository.existsByUserIdAndGameId(TEST_USER_ID, TEST_GAME_ID)).thenReturn(false);
         when(reviewRepository.save(any(Review.class))).thenReturn(testReview);
         when(reviewRepository.findByIdWithUser(TEST_REVIEW_ID)).thenReturn(Optional.of(testReview));
@@ -79,7 +78,7 @@ class ReviewServiceTest {
         assertEquals(5, result.rating());
         assertEquals("Great game!", result.reviewText());
 
-        verify(userRepository).existsById(TEST_USER_ID);
+        verify(userRepository).findById(TEST_USER_ID);
         verify(reviewRepository).existsByUserIdAndGameId(TEST_USER_ID, TEST_GAME_ID);
         verify(reviewRepository).save(any(Review.class));
         verify(reviewRepository).findByIdWithUser(TEST_REVIEW_ID);
@@ -90,12 +89,12 @@ class ReviewServiceTest {
     void shouldThrowExceptionWhenCreatingReviewForNonExistentUser() {
         CreateReviewRequest request = new CreateReviewRequest(TEST_GAME_ID, 5, "Great game!");
 
-        when(userRepository.existsById(TEST_USER_ID)).thenReturn(false);
+        when(userRepository.findById(TEST_USER_ID)).thenReturn(Optional.empty());
 
         assertThrows(IllegalArgumentException.class,
             () -> reviewService.createReview(TEST_USER_ID, request));
 
-        verify(userRepository).existsById(TEST_USER_ID);
+        verify(userRepository).findById(TEST_USER_ID);
         verify(reviewRepository, never()).save(any(Review.class));
     }
 
@@ -104,13 +103,13 @@ class ReviewServiceTest {
     void shouldThrowExceptionWhenCreatingDuplicateReview() {
         CreateReviewRequest request = new CreateReviewRequest(TEST_GAME_ID, 5, "Great game!");
 
-        when(userRepository.existsById(TEST_USER_ID)).thenReturn(true);
+        when(userRepository.findById(TEST_USER_ID)).thenReturn(Optional.of(testUser));
         when(reviewRepository.existsByUserIdAndGameId(TEST_USER_ID, TEST_GAME_ID)).thenReturn(true);
 
         assertThrows(ReviewAlreadyExistsException.class,
             () -> reviewService.createReview(TEST_USER_ID, request));
 
-        verify(userRepository).existsById(TEST_USER_ID);
+        verify(userRepository).findById(TEST_USER_ID);
         verify(reviewRepository).existsByUserIdAndGameId(TEST_USER_ID, TEST_GAME_ID);
         verify(reviewRepository, never()).save(any(Review.class));
     }
@@ -289,13 +288,12 @@ class ReviewServiceTest {
     @DisplayName("Should create review without review text")
     void shouldCreateReviewWithoutReviewText() {
         CreateReviewRequest request = new CreateReviewRequest(TEST_GAME_ID, 4, null);
-        Review reviewWithoutText = new Review(TEST_USER_ID, TEST_GAME_ID, 4, null);
+        Review reviewWithoutText = new Review(testUser, TEST_GAME_ID, 4, null);
         reviewWithoutText.setId(TEST_REVIEW_ID);
-        reviewWithoutText.setUser(testUser);
         reviewWithoutText.setCreatedAt(OffsetDateTime.now());
         reviewWithoutText.setUpdatedAt(OffsetDateTime.now());
 
-        when(userRepository.existsById(TEST_USER_ID)).thenReturn(true);
+        when(userRepository.findById(TEST_USER_ID)).thenReturn(Optional.of(testUser));
         when(reviewRepository.existsByUserIdAndGameId(TEST_USER_ID, TEST_GAME_ID)).thenReturn(false);
         when(reviewRepository.save(any(Review.class))).thenReturn(reviewWithoutText);
         when(reviewRepository.findByIdWithUser(TEST_REVIEW_ID)).thenReturn(Optional.of(reviewWithoutText));

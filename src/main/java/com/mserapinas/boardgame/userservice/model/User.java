@@ -28,7 +28,7 @@ public class User {
     @OneToMany(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")
     private Set<UserBoardGame> boardGames;
-    
+
     public User() {}
     
     public User(String email, String name, String password) {
@@ -80,7 +80,7 @@ public class User {
     public Set<UserBoardGame> getBoardGames() {
         return boardGames;
     }
-    
+
     public void setBoardGames(Set<UserBoardGame> boardGames) {
         this.boardGames = boardGames;
     }

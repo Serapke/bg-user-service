@@ -18,8 +18,9 @@ public class Review {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "user_id", nullable = false)
-    private Long userId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
 
     @Column(name = "game_id", nullable = false)
     private Integer gameId;
@@ -36,14 +37,10 @@ public class Review {
     @Column(name = "updated_at")
     private OffsetDateTime updatedAt;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", insertable = false, updatable = false)
-    private User user;
-
     public Review() {}
 
-    public Review(Long userId, Integer gameId, Integer rating, String reviewText) {
-        this.userId = userId;
+    public Review(User user, Integer gameId, Integer rating, String reviewText) {
+        this.user = user;
         this.gameId = gameId;
         this.rating = rating;
         this.reviewText = reviewText;
@@ -69,11 +66,7 @@ public class Review {
     }
 
     public Long getUserId() {
-        return userId;
-    }
-
-    public void setUserId(Long userId) {
-        this.userId = userId;
+        return user != null ? user.getId() : null;
     }
 
     public Integer getGameId() {

@@ -393,7 +393,7 @@
 								"me"
 							]
 						},
-						"description": "Delete the current user's account. Requires X-User-ID header. This action is irreversible and will delete all user data including board games and labels."
+						"description": "Delete the current user's account. Requires X-User-ID header. This action is irreversible and will delete all user data including board games, labels, and reviews."
 					},
 					"response": [
 						{
@@ -491,7 +491,7 @@
 								}
 							],
 							"cookie": [],
-							"body": "{\n    \"games\": [\n        {\n            \"id\": 1,\n            \"gameId\": 1001,\n            \"notes\": \"Owned\",\n            \"modifiedAt\": \"2024-12-20T10:30:00Z\",\n            \"labels\": [\n                {\n                    \"id\": 1,\n                    \"name\": \"Strategy\"\n                },\n                {\n                    \"id\": 2,\n                    \"name\": \"Family\"\n                }\n            ]\n        }\n    ]\n}"
+							"body": "{\n    \"games\": [\n        {\n            \"gameId\": 1001,\n            \"notes\": \"Owned\",\n            \"userRating\": 5,\n            \"modifiedAt\": \"2024-12-20T10:30:00Z\",\n            \"labels\": [\n                {\n                    \"id\": 1,\n                    \"name\": \"Strategy\"\n                },\n                {\n                    \"id\": 2,\n                    \"name\": \"Family\"\n                }\n            ]\n        }\n    ]\n}"
 						}
 					]
 				},
@@ -570,7 +570,7 @@
 								}
 							],
 							"cookie": [],
-							"body": "{\n    \"id\": 3,\n    \"gameId\": 1003,\n    \"notes\": \"Wishlist item\",\n    \"modifiedAt\": \"2024-12-20T14:30:00Z\",\n    \"labels\": [\n        {\n            \"id\": 4,\n            \"name\": \"Strategy\"\n        },\n        {\n            \"id\": 5,\n            \"name\": \"Wishlist\"\n        }\n    ]\n}"
+							"body": "{\n    \"gameId\": 1003,\n    \"notes\": \"Wishlist item\",\n    \"userRating\": null,\n    \"modifiedAt\": \"2024-12-20T14:30:00Z\",\n    \"labels\": [\n        {\n            \"id\": 4,\n            \"name\": \"Strategy\"\n        },\n        {\n            \"id\": 5,\n            \"name\": \"Wishlist\"\n        }\n    ]\n}"
 						}
 					]
 				},
@@ -661,7 +661,7 @@
 								}
 							],
 							"cookie": [],
-							"body": "{\n    \"id\": 1,\n    \"gameId\": 1001,\n    \"notes\": \"Updated notes for this game\",\n    \"modifiedAt\": \"2024-12-20T14:30:00Z\",\n    \"labels\": [\n        {\n            \"id\": 1,\n            \"name\": \"Strategy\"\n        },\n        {\n            \"id\": 4,\n            \"name\": \"Updated\"\n        }\n    ]\n}"
+							"body": "{\n    \"gameId\": 1001,\n    \"notes\": \"Updated notes for this game\",\n    \"userRating\": 5,\n    \"modifiedAt\": \"2024-12-20T14:30:00Z\",\n    \"labels\": [\n        {\n            \"id\": 1,\n            \"name\": \"Strategy\"\n        },\n        {\n            \"id\": 4,\n            \"name\": \"Updated\"\n        }\n    ]\n}"
 						}
 					]
 				},
