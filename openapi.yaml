@@ -1,0 +1,704 @@
+openapi: 3.0.3
+info:
+  title: Board Game Planner - User Service API
+  description: |
+    User Service API for the Board Game Planner application.
+
+    This service manages user accounts, game collections, and reviews. Authentication is handled
+    by the API Gateway via the X-User-ID header.
+  version: 1.0.0
+  contact:
+    name: Board Game Planner Support
+servers:
+  - url: http://localhost:8080
+    description: Local development server
+
+tags:
+  - name: Authentication
+    description: User registration and login endpoints
+  - name: User Management
+    description: User profile and account management
+  - name: Game Collection
+    description: Manage user's board game collection
+  - name: Reviews
+    description: Board game reviews and ratings
+
+paths:
+  /api/v1/auth/register:
+    post:
+      tags:
+        - Authentication
+      summary: Register a new user
+      description: Create a new user account with email, name, and password
+      operationId: registerUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '201':
+          description: User successfully registered
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '400':
+          description: Invalid request data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: User with this email already exists
+
+  /api/v1/auth/login:
+    post:
+      tags:
+        - Authentication
+      summary: Login user
+      description: Authenticate user with email and password. Returns user data only - authentication is handled by API Gateway.
+      operationId: loginUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/users/me:
+    get:
+      tags:
+        - User Management
+      summary: Get current user profile
+      description: Retrieve profile information for the authenticated user
+      operationId: getCurrentUser
+      security:
+        - UserIdHeader: []
+      responses:
+        '200':
+          description: User profile retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '401':
+          description: Unauthorized - missing or invalid X-User-ID header
+
+    put:
+      tags:
+        - User Management
+      summary: Update current user profile
+      description: Update the authenticated user's profile (currently only name can be updated)
+      operationId: updateCurrentUser
+      security:
+        - UserIdHeader: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUserProfileRequest'
+      responses:
+        '200':
+          description: Profile updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '401':
+          description: Unauthorized
+
+    delete:
+      tags:
+        - User Management
+      summary: Delete current user account
+      description: Permanently delete the authenticated user's account. This action is irreversible and will delete all user data including board games, labels, and reviews.
+      operationId: deleteCurrentUser
+      security:
+        - UserIdHeader: []
+      responses:
+        '204':
+          description: Account deleted successfully
+        '401':
+          description: Unauthorized
+
+  /api/v1/collections:
+    get:
+      tags:
+        - Game Collection
+      summary: Get user's game collection
+      description: Retrieve all board games in the authenticated user's collection
+      operationId: getUserGameCollection
+      security:
+        - UserIdHeader: []
+      responses:
+        '200':
+          description: Game collection retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GameCollectionDto'
+        '401':
+          description: Unauthorized
+
+  /api/v1/collections/games:
+    post:
+      tags:
+        - Game Collection
+      summary: Add game to collection
+      description: Add a new board game to the authenticated user's collection with optional labels
+      operationId: addGameToCollection
+      security:
+        - UserIdHeader: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddGameToCollectionRequest'
+      responses:
+        '201':
+          description: Game added to collection successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GameCollectionItemDto'
+        '400':
+          description: Invalid request data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+        '409':
+          description: Game already exists in collection
+
+  /api/v1/collections/games/{gameId}:
+    put:
+      tags:
+        - Game Collection
+      summary: Update game in collection
+      description: Update notes and labels for a specific game in the collection
+      operationId: updateGameInCollection
+      security:
+        - UserIdHeader: []
+      parameters:
+        - name: gameId
+          in: path
+          required: true
+          description: Board game ID
+          schema:
+            type: integer
+            format: int32
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateGameCollectionRequest'
+      responses:
+        '200':
+          description: Game updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GameCollectionItemDto'
+        '401':
+          description: Unauthorized
+        '404':
+          description: Game not found in collection
+
+    delete:
+      tags:
+        - Game Collection
+      summary: Remove game from collection
+      description: Remove a specific game from the authenticated user's collection
+      operationId: removeGameFromCollection
+      security:
+        - UserIdHeader: []
+      parameters:
+        - name: gameId
+          in: path
+          required: true
+          description: Board game ID
+          schema:
+            type: integer
+            format: int32
+      responses:
+        '204':
+          description: Game removed successfully
+        '401':
+          description: Unauthorized
+        '404':
+          description: Game not found in collection
+
+  /api/v1/reviews:
+    post:
+      tags:
+        - Reviews
+      summary: Create a review
+      description: Create a review for any board game. Users can review games not in their collection. One review per game per user.
+      operationId: createReview
+      security:
+        - UserIdHeader: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateReviewRequest'
+      responses:
+        '201':
+          description: Review created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReviewDto'
+        '400':
+          description: Invalid request data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+        '409':
+          description: User has already reviewed this game
+
+  /api/v1/reviews/me:
+    get:
+      tags:
+        - Reviews
+      summary: Get current user's reviews
+      description: Retrieve all reviews created by the authenticated user
+      operationId: getCurrentUserReviews
+      security:
+        - UserIdHeader: []
+      responses:
+        '200':
+          description: Reviews retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ReviewDto'
+        '401':
+          description: Unauthorized
+
+  /api/v1/reviews/{reviewId}:
+    get:
+      tags:
+        - Reviews
+      summary: Get review by ID
+      description: Retrieve a specific review by its ID. No authentication required.
+      operationId: getReviewById
+      parameters:
+        - name: reviewId
+          in: path
+          required: true
+          description: Review ID
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Review retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReviewDto'
+        '404':
+          description: Review not found
+
+    put:
+      tags:
+        - Reviews
+      summary: Update review
+      description: Update an existing review. Only the review owner can update it.
+      operationId: updateReview
+      security:
+        - UserIdHeader: []
+      parameters:
+        - name: reviewId
+          in: path
+          required: true
+          description: Review ID
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateReviewRequest'
+      responses:
+        '200':
+          description: Review updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReviewDto'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden - user is not the review owner
+        '404':
+          description: Review not found
+
+    delete:
+      tags:
+        - Reviews
+      summary: Delete review
+      description: Delete a review. Only the review owner can delete it.
+      operationId: deleteReview
+      security:
+        - UserIdHeader: []
+      parameters:
+        - name: reviewId
+          in: path
+          required: true
+          description: Review ID
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '204':
+          description: Review deleted successfully
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden - user is not the review owner
+        '404':
+          description: Review not found
+
+  /api/v1/reviews/games/{gameId}:
+    get:
+      tags:
+        - Reviews
+      summary: Get reviews for a game
+      description: Retrieve all reviews for a specific game, including statistics (average rating and total count). No authentication required.
+      operationId: getReviewsForGame
+      parameters:
+        - name: gameId
+          in: path
+          required: true
+          description: Board game ID
+          schema:
+            type: integer
+            format: int32
+      responses:
+        '200':
+          description: Reviews retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReviewListDto'
+
+components:
+  securitySchemes:
+    UserIdHeader:
+      type: apiKey
+      in: header
+      name: X-User-ID
+      description: User ID provided by API Gateway after authentication
+
+  schemas:
+    RegisterRequest:
+      type: object
+      required:
+        - email
+        - name
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          description: User's email address
+          example: john.doe@example.com
+        name:
+          type: string
+          minLength: 1
+          description: User's display name
+          example: John Doe
+        password:
+          type: string
+          minLength: 8
+          description: User's password (minimum 8 characters)
+          example: SecurePassword123!
+
+    LoginRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          description: User's email address
+          example: alice@example.com
+        password:
+          type: string
+          description: User's password
+          example: Password123!
+
+    UpdateUserProfileRequest:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          minLength: 1
+          description: Updated display name
+          example: Updated Name
+
+    UserResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: User ID
+          example: 1
+        name:
+          type: string
+          description: User's display name
+          example: Alice Johnson
+        createdAt:
+          type: string
+          format: date-time
+          description: Account creation timestamp
+          example: "2024-12-20T08:30:00Z"
+
+    AddGameToCollectionRequest:
+      type: object
+      required:
+        - gameId
+      properties:
+        gameId:
+          type: integer
+          format: int32
+          description: Board game ID
+          example: 1003
+          minimum: 1
+        notes:
+          type: string
+          nullable: true
+          description: Optional notes about the game
+          example: Wishlist item
+        labelNames:
+          type: array
+          nullable: true
+          items:
+            type: string
+          description: Optional list of label names (will be created if they don't exist)
+          example: ["Strategy", "Wishlist"]
+
+    UpdateGameCollectionRequest:
+      type: object
+      properties:
+        notes:
+          type: string
+          nullable: true
+          description: Updated notes
+          example: Updated notes for this game
+        labelNames:
+          type: array
+          nullable: true
+          items:
+            type: string
+          description: Updated label names
+          example: ["Strategy", "Updated"]
+
+    GameCollectionItemDto:
+      type: object
+      properties:
+        gameId:
+          type: integer
+          format: int32
+          description: Board game ID
+          example: 1001
+        notes:
+          type: string
+          nullable: true
+          description: User's notes about the game
+          example: Owned
+        userRating:
+          type: integer
+          format: int32
+          nullable: true
+          minimum: 1
+          maximum: 5
+          description: User's rating for this game (1-5), if they have reviewed it
+          example: 5
+        modifiedAt:
+          type: string
+          format: date-time
+          description: Last modification timestamp
+          example: "2024-12-20T10:30:00Z"
+        labels:
+          type: array
+          items:
+            $ref: '#/components/schemas/LabelDto'
+          description: Labels associated with this game
+
+    GameCollectionDto:
+      type: object
+      properties:
+        games:
+          type: array
+          items:
+            $ref: '#/components/schemas/GameCollectionItemDto'
+          description: List of games in the collection
+
+    LabelDto:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: Label ID
+          example: 1
+        name:
+          type: string
+          description: Label name
+          example: Strategy
+
+    CreateReviewRequest:
+      type: object
+      required:
+        - gameId
+        - rating
+      properties:
+        gameId:
+          type: integer
+          format: int32
+          description: Board game ID
+          example: 1001
+          minimum: 1
+        rating:
+          type: integer
+          format: int32
+          description: Rating from 1 to 5
+          example: 5
+          minimum: 1
+          maximum: 5
+        reviewText:
+          type: string
+          nullable: true
+          description: Optional review text
+          example: Amazing game! Perfect for game nights with friends.
+
+    UpdateReviewRequest:
+      type: object
+      required:
+        - rating
+      properties:
+        rating:
+          type: integer
+          format: int32
+          description: Updated rating from 1 to 5
+          example: 4
+          minimum: 1
+          maximum: 5
+        reviewText:
+          type: string
+          nullable: true
+          description: Updated review text
+          example: Updated review text. Still a great game but lowering rating slightly.
+
+    ReviewDto:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: Review ID
+          example: 1
+        userId:
+          type: integer
+          format: int64
+          description: User ID of the reviewer
+          example: 1
+        userName:
+          type: string
+          description: Display name of the reviewer
+          example: Alice
+        gameId:
+          type: integer
+          format: int32
+          description: Board game ID
+          example: 1001
+        rating:
+          type: integer
+          format: int32
+          description: Rating from 1 to 5
+          example: 5
+          minimum: 1
+          maximum: 5
+        reviewText:
+          type: string
+          nullable: true
+          description: Review text (optional)
+          example: Amazing game! Perfect for game nights with friends.
+        createdAt:
+          type: string
+          format: date-time
+          description: Review creation timestamp
+          example: "2024-12-20T10:30:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          description: Review last update timestamp
+          example: "2024-12-20T10:30:00Z"
+
+    ReviewListDto:
+      type: object
+      properties:
+        reviews:
+          type: array
+          items:
+            $ref: '#/components/schemas/ReviewDto'
+          description: List of reviews
+        totalCount:
+          type: integer
+          format: int32
+          description: Total number of reviews
+          example: 2
+        averageRating:
+          type: number
+          format: double
+          description: Average rating across all reviews
+          example: 4.5
+
+    ErrorResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          description: Error message
+          example: Invalid credentials
+        timestamp:
+          type: string
+          format: date-time
+          description: Error timestamp
+          example: "2024-12-20T10:30:00Z"
