@@ -66,11 +66,14 @@ CREATE INDEX IF NOT EXISTS idx_reviews_game_id ON reviews(game_id);
 CREATE INDEX IF NOT EXISTS idx_reviews_user_id ON reviews(user_id);
 
 -- Mock seed data
--- Note: Using BCrypt hash for password "Password123!" 
+-- Note: Using BCrypt hash for password "Password123!"
 INSERT INTO users (email, name, password)
 VALUES
-    ('alice@example.com', 'Alice', '$2a$10$8K1p/a0dQ2TQxa21LDbODeAmhltJL0.pCGhrtwEzMo2vREQpgS8TG'),
-    ('bob@example.com', 'Bob', '$2a$10$8K1p/a0dQ2TQxa21LDbODeAmhltJL0.pCGhrtwEzMo2vREQpgS8TG')
+    ('kipras@example.com', 'Kipras', '$2a$10$8K1p/a0dQ2TQxa21LDbODeAmhltJL0.pCGhrtwEzMo2vREQpgS8TG'),
+    ('tautvydas@example.com', 'Tautvydas', '$2a$10$8K1p/a0dQ2TQxa21LDbODeAmhltJL0.pCGhrtwEzMo2vREQpgS8TG'),
+    ('justas@example.com', 'Justas', '$2a$10$8K1p/a0dQ2TQxa21LDbODeAmhltJL0.pCGhrtwEzMo2vREQpgS8TG'),
+    ('ignas@example.com', 'Ignas', '$2a$10$8K1p/a0dQ2TQxa21LDbODeAmhltJL0.pCGhrtwEzMo2vREQpgS8TG'),
+    ('paulius@example.com', 'Paulius', '$2a$10$8K1p/a0dQ2TQxa21LDbODeAmhltJL0.pCGhrtwEzMo2vREQpgS8TG')
 ON CONFLICT (email) DO NOTHING;
 
 -- User board games
@@ -78,10 +81,10 @@ INSERT INTO user_board_games (user_id, game_id, notes)
 SELECT u.id, v.game_id, v.notes
 FROM (
     VALUES
-        ('alice@example.com', 1001, 'Owned'),
-        ('alice@example.com', 1002, 'Legacy S1 complete'),
-        ('bob@example.com', 2001, 'Wishlist'),
-        ('bob@example.com', 2002, 'Owned')
+        ('kipras@example.com', 1001, 'Owned'),
+        ('kipras@example.com', 1002, 'Legacy S1 complete'),
+        ('tautvydas@example.com', 2001, 'Wishlist'),
+        ('tautvydas@example.com', 2002, 'Owned')
 ) AS v(email, game_id, notes)
 JOIN users u ON u.email = v.email
 ON CONFLICT (user_id, game_id) DO NOTHING;
@@ -91,11 +94,11 @@ INSERT INTO reviews (user_id, game_id, rating, review_text)
 SELECT u.id, v.game_id, v.rating, v.review_text
 FROM (
     VALUES
-        ('alice@example.com', 1001, 5, 'Amazing game! Perfect for game nights with friends.'),
-        ('alice@example.com', 1002, 4, 'Great legacy experience, but takes commitment to finish.'),
-        ('alice@example.com', 3001, 5, 'Best cooperative game I have ever played!'),
-        ('bob@example.com', 2001, 5, 'Cannot wait to get this game. Watched many reviews and it looks fantastic!'),
-        ('bob@example.com', 1001, 4, 'Solid game, though a bit too complex for casual players.')
+        ('kipras@example.com', 1001, 5, 'Amazing game! Perfect for game nights with friends.'),
+        ('kipras@example.com', 1002, 4, 'Great legacy experience, but takes commitment to finish.'),
+        ('kipras@example.com', 3001, 5, 'Best cooperative game I have ever played!'),
+        ('tautvydas@example.com', 2001, 5, 'Cannot wait to get this game. Watched many reviews and it looks fantastic!'),
+        ('tautvydas@example.com', 1001, 4, 'Solid game, though a bit too complex for casual players.')
 ) AS v(email, game_id, rating, review_text)
 JOIN users u ON u.email = v.email
 ON CONFLICT (user_id, game_id) DO NOTHING;
