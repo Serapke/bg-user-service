@@ -22,6 +22,8 @@ tags:
     description: Manage user's board game collection
   - name: Reviews
     description: Board game reviews and ratings
+  - name: Friendships
+    description: Friend requests and friendship management
 
 paths:
   /api/v1/auth/register:
@@ -412,6 +414,217 @@ paths:
               schema:
                 $ref: '#/components/schemas/ReviewListDto'
 
+  /api/v1/friendships/requests/{friendId}:
+    post:
+      tags:
+        - Friendships
+      summary: Send friend request
+      description: |
+        Send a friend request to another user. If the other user already sent a request to you,
+        this automatically accepts the friendship (creates bidirectional relationship).
+      operationId: sendFriendRequest
+      security:
+        - UserIdHeader: []
+      parameters:
+        - name: friendId
+          in: path
+          required: true
+          description: ID of the user to send friend request to
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '201':
+          description: Friend request sent successfully
+        '400':
+          description: Cannot send friend request to yourself
+        '401':
+          description: Unauthorized
+        '404':
+          description: User not found
+        '409':
+          description: Already friends or request already sent
+
+  /api/v1/friendships/requests/{requesterId}/accept:
+    post:
+      tags:
+        - Friendships
+      summary: Accept friend request
+      description: Accept an incoming friend request, creating a bidirectional friendship
+      operationId: acceptFriendRequest
+      security:
+        - UserIdHeader: []
+      parameters:
+        - name: requesterId
+          in: path
+          required: true
+          description: ID of the user who sent the friend request
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Friend request accepted successfully
+        '401':
+          description: Unauthorized
+        '404':
+          description: Friend request not found
+        '409':
+          description: Already friends
+
+  /api/v1/friendships/requests/{requesterId}/decline:
+    delete:
+      tags:
+        - Friendships
+      summary: Decline friend request
+      description: Decline an incoming friend request
+      operationId: declineFriendRequest
+      security:
+        - UserIdHeader: []
+      parameters:
+        - name: requesterId
+          in: path
+          required: true
+          description: ID of the user who sent the friend request
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '204':
+          description: Friend request declined successfully
+        '401':
+          description: Unauthorized
+        '404':
+          description: Friend request not found
+
+  /api/v1/friendships/requests/{friendId}/cancel:
+    delete:
+      tags:
+        - Friendships
+      summary: Cancel friend request
+      description: Cancel an outgoing friend request that hasn't been accepted yet
+      operationId: cancelFriendRequest
+      security:
+        - UserIdHeader: []
+      parameters:
+        - name: friendId
+          in: path
+          required: true
+          description: ID of the user to whom the request was sent
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '204':
+          description: Friend request cancelled successfully
+        '401':
+          description: Unauthorized
+        '404':
+          description: Friend request not found
+
+  /api/v1/friendships/requests/incoming:
+    get:
+      tags:
+        - Friendships
+      summary: Get incoming friend requests
+      description: Retrieve all pending friend requests sent to the authenticated user
+      operationId: getIncomingRequests
+      security:
+        - UserIdHeader: []
+      responses:
+        '200':
+          description: Incoming requests retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FriendRequestListDto'
+        '401':
+          description: Unauthorized
+
+  /api/v1/friendships/requests/outgoing:
+    get:
+      tags:
+        - Friendships
+      summary: Get outgoing friend requests
+      description: Retrieve all pending friend requests sent by the authenticated user
+      operationId: getOutgoingRequests
+      security:
+        - UserIdHeader: []
+      responses:
+        '200':
+          description: Outgoing requests retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FriendRequestListDto'
+        '401':
+          description: Unauthorized
+
+  /api/v1/friendships:
+    get:
+      tags:
+        - Friendships
+      summary: Get friends list
+      description: Retrieve all accepted friends of the authenticated user
+      operationId: getFriends
+      security:
+        - UserIdHeader: []
+      responses:
+        '200':
+          description: Friends list retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FriendListDto'
+        '401':
+          description: Unauthorized
+
+  /api/v1/friendships/{friendId}:
+    delete:
+      tags:
+        - Friendships
+      summary: Remove friend
+      description: Remove a friend, deleting the bidirectional friendship
+      operationId: removeFriend
+      security:
+        - UserIdHeader: []
+      parameters:
+        - name: friendId
+          in: path
+          required: true
+          description: ID of the friend to remove
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '204':
+          description: Friend removed successfully
+        '401':
+          description: Unauthorized
+        '404':
+          description: Friendship not found
+
+  /api/v1/friendships/suggestions:
+    get:
+      tags:
+        - Friendships
+      summary: Get friend suggestions
+      description: |
+        Get friend suggestions based on friends-of-friends algorithm.
+        Returns users who are friends of your friends but not your direct friends.
+      operationId: getFriendSuggestions
+      security:
+        - UserIdHeader: []
+      responses:
+        '200':
+          description: Friend suggestions retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FriendSuggestionDto'
+        '401':
+          description: Unauthorized
+
 components:
   securitySchemes:
     UserIdHeader:
@@ -702,3 +915,119 @@ components:
           format: date-time
           description: Error timestamp
           example: "2024-12-20T10:30:00Z"
+
+    FriendDto:
+      type: object
+      properties:
+        userId:
+          type: integer
+          format: int64
+          description: Friend's user ID
+          example: 2
+        userName:
+          type: string
+          description: Friend's display name
+          example: Tautvydas
+        email:
+          type: string
+          format: email
+          description: Friend's email address
+          example: tautvydas@example.com
+        friendsSince:
+          type: string
+          format: date-time
+          description: Timestamp when friendship was established
+          example: "2024-12-20T10:30:00Z"
+
+    FriendListDto:
+      type: object
+      properties:
+        friends:
+          type: array
+          items:
+            $ref: '#/components/schemas/FriendDto'
+          description: List of friends
+        totalCount:
+          type: integer
+          format: int64
+          description: Total number of friends
+          example: 2
+
+    FriendRequestDto:
+      type: object
+      properties:
+        requestId:
+          type: integer
+          format: int64
+          description: Friend request ID
+          example: 5
+        userId:
+          type: integer
+          format: int64
+          description: User ID of the requester (for incoming) or recipient (for outgoing)
+          example: 3
+        userName:
+          type: string
+          description: Display name of the user
+          example: Justas
+        email:
+          type: string
+          format: email
+          description: Email address of the user
+          example: justas@example.com
+        requestedAt:
+          type: string
+          format: date-time
+          description: Timestamp when request was sent
+          example: "2024-12-20T11:00:00Z"
+        direction:
+          type: string
+          enum: [INCOMING, OUTGOING]
+          description: Direction of the friend request
+          example: INCOMING
+
+    FriendRequestListDto:
+      type: object
+      properties:
+        requests:
+          type: array
+          items:
+            $ref: '#/components/schemas/FriendRequestDto'
+          description: List of friend requests
+        totalCount:
+          type: integer
+          format: int64
+          description: Total number of friend requests
+          example: 1
+
+    FriendSuggestionDto:
+      type: object
+      properties:
+        suggestions:
+          type: array
+          items:
+            $ref: '#/components/schemas/UserSuggestionDto'
+          description: List of friend suggestions
+        totalCount:
+          type: integer
+          format: int64
+          description: Total number of suggestions
+          example: 2
+
+    UserSuggestionDto:
+      type: object
+      properties:
+        userId:
+          type: integer
+          format: int64
+          description: User ID
+          example: 4
+        userName:
+          type: string
+          description: Display name
+          example: Paulius
+        email:
+          type: string
+          format: email
+          description: Email address
+          example: paulius@example.com

@@ -65,6 +65,26 @@ CREATE TABLE IF NOT EXISTS reviews (
 CREATE INDEX IF NOT EXISTS idx_reviews_game_id ON reviews(game_id);
 CREATE INDEX IF NOT EXISTS idx_reviews_user_id ON reviews(user_id);
 
+CREATE TABLE IF NOT EXISTS friendships (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL,
+    friend_id INTEGER NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_friendship_user
+        FOREIGN KEY(user_id)
+        REFERENCES users(id)
+        ON DELETE CASCADE,
+    CONSTRAINT fk_friendship_friend
+        FOREIGN KEY(friend_id)
+        REFERENCES users(id)
+        ON DELETE CASCADE,
+    CONSTRAINT chk_not_self CHECK (user_id != friend_id),
+    CONSTRAINT uq_friendships_user_friend UNIQUE (user_id, friend_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_friendships_friend_id ON friendships(friend_id);
+CREATE INDEX IF NOT EXISTS idx_friendships_user_id ON friendships(user_id);
+
 -- Mock seed data
 -- Note: Using BCrypt hash for password "Password123!"
 INSERT INTO users (email, name, password)
@@ -102,3 +122,50 @@ FROM (
 ) AS v(email, game_id, rating, review_text)
 JOIN users u ON u.email = v.email
 ON CONFLICT (user_id, game_id) DO NOTHING;
+
+-- Friendships
+-- Kipras ↔ Tautvydas (accepted friendship - bidirectional)
+INSERT INTO friendships (user_id, friend_id)
+SELECT u1.id, u2.id
+FROM users u1, users u2
+WHERE u1.email = 'kipras@example.com' AND u2.email = 'tautvydas@example.com'
+ON CONFLICT (user_id, friend_id) DO NOTHING;
+
+INSERT INTO friendships (user_id, friend_id)
+SELECT u1.id, u2.id
+FROM users u1, users u2
+WHERE u1.email = 'tautvydas@example.com' AND u2.email = 'kipras@example.com'
+ON CONFLICT (user_id, friend_id) DO NOTHING;
+
+-- Kipras ↔ Ignas (accepted friendship - bidirectional)
+INSERT INTO friendships (user_id, friend_id)
+SELECT u1.id, u2.id
+FROM users u1, users u2
+WHERE u1.email = 'kipras@example.com' AND u2.email = 'ignas@example.com'
+ON CONFLICT (user_id, friend_id) DO NOTHING;
+
+INSERT INTO friendships (user_id, friend_id)
+SELECT u1.id, u2.id
+FROM users u1, users u2
+WHERE u1.email = 'ignas@example.com' AND u2.email = 'kipras@example.com'
+ON CONFLICT (user_id, friend_id) DO NOTHING;
+
+-- Ignas ↔ Paulius (accepted friendship - bidirectional)
+INSERT INTO friendships (user_id, friend_id)
+SELECT u1.id, u2.id
+FROM users u1, users u2
+WHERE u1.email = 'ignas@example.com' AND u2.email = 'paulius@example.com'
+ON CONFLICT (user_id, friend_id) DO NOTHING;
+
+INSERT INTO friendships (user_id, friend_id)
+SELECT u1.id, u2.id
+FROM users u1, users u2
+WHERE u1.email = 'paulius@example.com' AND u2.email = 'ignas@example.com'
+ON CONFLICT (user_id, friend_id) DO NOTHING;
+
+-- Justas → Kipras (pending request - unidirectional)
+INSERT INTO friendships (user_id, friend_id)
+SELECT u1.id, u2.id
+FROM users u1, users u2
+WHERE u1.email = 'justas@example.com' AND u2.email = 'kipras@example.com'
+ON CONFLICT (user_id, friend_id) DO NOTHING;
