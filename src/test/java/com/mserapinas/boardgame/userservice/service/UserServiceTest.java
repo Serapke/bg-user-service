@@ -6,9 +6,11 @@ import com.mserapinas.boardgame.userservice.dto.request.UpdateUserProfileRequest
 import com.mserapinas.boardgame.userservice.dto.response.GameCollectionDto;
 import com.mserapinas.boardgame.userservice.dto.response.GameCollectionItemDto;
 import com.mserapinas.boardgame.userservice.exception.InvalidCredentialsException;
+import com.mserapinas.boardgame.userservice.model.CollectionVisibility;
 import com.mserapinas.boardgame.userservice.model.Label;
 import com.mserapinas.boardgame.userservice.model.User;
 import com.mserapinas.boardgame.userservice.model.UserBoardGame;
+import com.mserapinas.boardgame.userservice.repository.FriendshipRepository;
 import com.mserapinas.boardgame.userservice.repository.LabelRepository;
 import com.mserapinas.boardgame.userservice.repository.ReviewRepository;
 import com.mserapinas.boardgame.userservice.repository.UserBoardGameRepository;
@@ -44,6 +46,9 @@ class UserServiceTest {
     @Mock
     private ReviewRepository reviewRepository;
 
+    @Mock
+    private FriendshipRepository friendshipRepository;
+
     private UserService userService;
 
     private User testUser;
@@ -53,7 +58,7 @@ class UserServiceTest {
 
     @BeforeEach
     void setUp() {
-        userService = new UserService(userRepository, userBoardGameRepository, labelRepository, reviewRepository);
+        userService = new UserService(userRepository, userBoardGameRepository, labelRepository, reviewRepository, friendshipRepository);
 
         testUser = new User();
         testUser.setId(TEST_USER_ID);
@@ -74,7 +79,7 @@ class UserServiceTest {
     @DisplayName("Should update user profile successfully")
     void shouldUpdateUserProfileSuccessfully() {
         String newName = "Updated Name";
-        UpdateUserProfileRequest request = new UpdateUserProfileRequest(newName);
+        UpdateUserProfileRequest request = new UpdateUserProfileRequest(newName, CollectionVisibility.PUBLIC);
 
         when(userRepository.findById(TEST_USER_ID)).thenReturn(Optional.of(testUser));
         when(userRepository.save(any(User.class))).thenReturn(testUser);
@@ -90,7 +95,7 @@ class UserServiceTest {
     @Test
     @DisplayName("Should throw exception when updating profile for non-existent user")
     void shouldThrowExceptionWhenUpdatingProfileForNonExistentUser() {
-        UpdateUserProfileRequest request = new UpdateUserProfileRequest("New Name");
+        UpdateUserProfileRequest request = new UpdateUserProfileRequest("New Name", CollectionVisibility.FRIENDS);
 
         when(userRepository.findById(TEST_USER_ID)).thenReturn(Optional.empty());
 

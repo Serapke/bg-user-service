@@ -21,10 +21,14 @@ public class User {
     
     @Column(nullable = false)
     private String password;
-    
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "collection_visibility", nullable = false)
+    private CollectionVisibility collectionVisibility = CollectionVisibility.FRIENDS;
+
     @Column(name = "created_at")
     private OffsetDateTime createdAt;
-    
+
     @OneToMany(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")
     private Set<UserBoardGame> boardGames;
@@ -83,5 +87,13 @@ public class User {
 
     public void setBoardGames(Set<UserBoardGame> boardGames) {
         this.boardGames = boardGames;
+    }
+
+    public CollectionVisibility getCollectionVisibility() {
+        return collectionVisibility;
+    }
+
+    public void setCollectionVisibility(CollectionVisibility collectionVisibility) {
+        this.collectionVisibility = collectionVisibility;
     }
 }

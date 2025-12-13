@@ -29,20 +29,31 @@ public class CollectionController {
         return ResponseEntity.ok(collection);
     }
 
+    @GetMapping("/users/{userId}")
+    public ResponseEntity<GameCollectionDto> getUserGameCollection(
+        @CurrentUser Long requesterId,
+        @PathVariable Long userId
+    ) {
+        GameCollectionDto collection = userService.getUserGameCollection(requesterId, userId);
+        return ResponseEntity.ok(collection);
+    }
+
     @PostMapping("/games")
     @ResponseStatus(HttpStatus.CREATED)
     public ResponseEntity<GameCollectionItemDto> addGameToCollection(
-            @CurrentUser Long userId,
-            @Valid @RequestBody AddGameToCollectionRequest request) {
+        @CurrentUser Long userId,
+        @Valid @RequestBody AddGameToCollectionRequest request
+    ) {
         GameCollectionItemDto addedGame = userService.addGameToCollection(userId, request);
         return ResponseEntity.status(HttpStatus.CREATED).body(addedGame);
     }
 
     @PutMapping("/games/{gameId}")
     public ResponseEntity<GameCollectionItemDto> updateGameInCollection(
-            @CurrentUser Long userId,
-            @PathVariable Integer gameId,
-            @Valid @RequestBody UpdateGameCollectionRequest request) {
+        @CurrentUser Long userId,
+        @PathVariable Integer gameId,
+        @Valid @RequestBody UpdateGameCollectionRequest request
+    ) {
         GameCollectionItemDto updatedGame = userService.updateGameInCollection(userId, gameId, request);
         return ResponseEntity.ok(updatedGame);
     }
@@ -50,8 +61,8 @@ public class CollectionController {
     @DeleteMapping("/games/{gameId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteGameFromCollection(
-            @CurrentUser Long userId,
-            @PathVariable Integer gameId) {
+        @CurrentUser Long userId,
+        @PathVariable Integer gameId) {
         userService.deleteGameFromCollection(userId, gameId);
     }
 }

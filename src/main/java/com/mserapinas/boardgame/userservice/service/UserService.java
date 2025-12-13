@@ -5,15 +5,11 @@ import com.mserapinas.boardgame.userservice.dto.request.UpdateGameCollectionRequ
 import com.mserapinas.boardgame.userservice.dto.request.UpdateUserProfileRequest;
 import com.mserapinas.boardgame.userservice.dto.response.GameCollectionDto;
 import com.mserapinas.boardgame.userservice.dto.response.GameCollectionItemDto;
+import com.mserapinas.boardgame.userservice.exception.CollectionAccessForbiddenException;
 import com.mserapinas.boardgame.userservice.exception.InvalidCredentialsException;
-import com.mserapinas.boardgame.userservice.model.Label;
-import com.mserapinas.boardgame.userservice.model.Review;
-import com.mserapinas.boardgame.userservice.model.User;
-import com.mserapinas.boardgame.userservice.model.UserBoardGame;
-import com.mserapinas.boardgame.userservice.repository.LabelRepository;
-import com.mserapinas.boardgame.userservice.repository.ReviewRepository;
-import com.mserapinas.boardgame.userservice.repository.UserBoardGameRepository;
-import com.mserapinas.boardgame.userservice.repository.UserRepository;
+import com.mserapinas.boardgame.userservice.exception.UserNotFoundException;
+import com.mserapinas.boardgame.userservice.model.*;
+import com.mserapinas.boardgame.userservice.repository.*;
 import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
 
@@ -32,13 +28,20 @@ public class UserService {
     private final UserBoardGameRepository userBoardGameRepository;
     private final LabelRepository labelRepository;
     private final ReviewRepository reviewRepository;
+    private final FriendshipRepository friendshipRepository;
 
-    public UserService(UserRepository userRepository, UserBoardGameRepository userBoardGameRepository,
-                      LabelRepository labelRepository, ReviewRepository reviewRepository) {
+    public UserService(
+        UserRepository userRepository,
+        UserBoardGameRepository userBoardGameRepository,
+        LabelRepository labelRepository,
+        ReviewRepository reviewRepository,
+        FriendshipRepository friendshipRepository
+    ) {
         this.userRepository = userRepository;
         this.userBoardGameRepository = userBoardGameRepository;
         this.labelRepository = labelRepository;
         this.reviewRepository = reviewRepository;
+        this.friendshipRepository = friendshipRepository;
     }
 
     @Transactional
@@ -47,6 +50,7 @@ public class UserService {
             .orElseThrow(InvalidCredentialsException::new);
 
         user.setName(request.name());
+        user.setCollectionVisibility(request.collectionVisibility());
         return userRepository.save(user);
     }
 
@@ -69,6 +73,37 @@ public class UserService {
             .toList();
 
         return GameCollectionDto.from(games);
+    }
+
+    public GameCollectionDto getUserGameCollection(Long requesterId, Long targetUserId) {
+        User targetUser = userRepository.findById(targetUserId)
+            .orElseThrow(() -> new UserNotFoundException(targetUserId));
+
+        // Check if requester has permission to view the collection
+        CollectionVisibility visibility = targetUser.getCollectionVisibility();
+
+        // If it's the user's own collection, always allow
+        if (requesterId.equals(targetUserId)) {
+            return getUserGameCollection(targetUserId);
+        }
+
+        // Check visibility permissions
+        switch (visibility) {
+            case PUBLIC:
+                // Everyone can see public collections
+                break;
+            case FRIENDS:
+                // Only friends can see
+                if (!friendshipRepository.areFriends(requesterId, targetUserId)) {
+                    throw new CollectionAccessForbiddenException();
+                }
+                break;
+            case PRIVATE:
+                // Only the owner can see
+                throw new CollectionAccessForbiddenException();
+        }
+
+        return getUserGameCollection(targetUserId);
     }
 
     @Transactional
@@ -106,9 +141,9 @@ public class UserService {
         Set<String> existingLabelNames = existingLabels.stream()
             .map(Label::getName)
             .collect(java.util.stream.Collectors.toSet());
-        
+
         Set<Label> allLabels = new HashSet<>(existingLabels);
-        
+
         // Create new labels for names that don't exist
         for (String labelName : labelNames) {
             if (!existingLabelNames.contains(labelName)) {
@@ -118,7 +153,7 @@ public class UserService {
                 allLabels.add(savedLabel);
             }
         }
-        
+
         return allLabels;
     }
 

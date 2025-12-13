@@ -6,6 +6,20 @@ CREATE TABLE IF NOT EXISTS users (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Add collection_visibility column if it doesn't exist
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name='users' AND column_name='collection_visibility'
+    ) THEN
+        ALTER TABLE users ADD COLUMN collection_visibility VARCHAR(50);
+        UPDATE users SET collection_visibility = 'FRIENDS' WHERE collection_visibility IS NULL;
+        ALTER TABLE users ALTER COLUMN collection_visibility SET NOT NULL;
+        ALTER TABLE users ALTER COLUMN collection_visibility SET DEFAULT 'FRIENDS';
+    END IF;
+END $$;
+
 CREATE TABLE IF NOT EXISTS labels (
     id SERIAL PRIMARY KEY,
     user_id INTEGER NOT NULL,

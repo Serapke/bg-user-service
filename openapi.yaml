@@ -158,6 +158,49 @@ paths:
         '401':
           description: Unauthorized
 
+  /api/v1/collections/users/{userId}:
+    get:
+      tags:
+        - Game Collection
+      summary: Get another user's game collection
+      description: |
+        Retrieve a user's game collection by user ID. Access is controlled by the collection's visibility setting:
+        - PUBLIC: Anyone can view
+        - FRIENDS: Only friends can view
+        - PRIVATE: Only the owner can view (returns 403 for others)
+      operationId: getUserGameCollectionById
+      security:
+        - UserIdHeader: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          description: Target user ID whose collection to retrieve
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Game collection retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GameCollectionDto'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden - You don't have permission to view this collection
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
   /api/v1/collections/games:
     post:
       tags:
@@ -677,12 +720,15 @@ components:
       type: object
       required:
         - name
+        - collectionVisibility
       properties:
         name:
           type: string
           minLength: 1
           description: Updated display name
           example: Updated Name
+        collectionVisibility:
+          $ref: '#/components/schemas/CollectionVisibility'
 
     UserResponse:
       type: object
@@ -696,6 +742,8 @@ components:
           type: string
           description: User's display name
           example: Alice Johnson
+        collectionVisibility:
+          $ref: '#/components/schemas/CollectionVisibility'
         createdAt:
           type: string
           format: date-time
@@ -1031,3 +1079,16 @@ components:
           format: email
           description: Email address
           example: paulius@example.com
+
+    CollectionVisibility:
+      type: string
+      enum:
+        - PUBLIC
+        - FRIENDS
+        - PRIVATE
+      description: |
+        Collection visibility setting:
+        - PUBLIC: Everyone can see the collection
+        - FRIENDS: Only friends can see the collection
+        - PRIVATE: Only the user can see their own collection
+      example: FRIENDS

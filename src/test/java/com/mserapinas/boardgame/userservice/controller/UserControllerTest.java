@@ -1,5 +1,7 @@
 package com.mserapinas.boardgame.userservice.controller;
 
+import com.mserapinas.boardgame.userservice.model.CollectionVisibility;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mserapinas.boardgame.userservice.dto.request.UpdateUserProfileRequest;
 import com.mserapinas.boardgame.userservice.exception.InvalidCredentialsException;
@@ -87,7 +89,7 @@ class UserControllerTest {
     @DisplayName("Should update current user profile successfully")
     void shouldUpdateCurrentUserProfileSuccessfully() throws Exception {
         String newName = "Updated Name";
-        UpdateUserProfileRequest request = new UpdateUserProfileRequest(newName);
+        UpdateUserProfileRequest request = new UpdateUserProfileRequest(newName, CollectionVisibility.FRIENDS);
 
         User updatedUser = new User("test@example.com", newName, "hashedPassword");
         updatedUser.setId(TEST_USER_ID);
@@ -112,7 +114,7 @@ class UserControllerTest {
     @Test
     @DisplayName("Should return bad request when updating profile with invalid data")
     void shouldReturnBadRequestWhenUpdatingProfileWithInvalidData() throws Exception {
-        UpdateUserProfileRequest invalidRequest = new UpdateUserProfileRequest(null); // name is required
+        UpdateUserProfileRequest invalidRequest = new UpdateUserProfileRequest(null, CollectionVisibility.FRIENDS); // name is required
 
         mockMvc.perform(put(BASE_URL + "/me")
                 .header(USER_ID_HEADER, TEST_USER_ID)
@@ -126,7 +128,7 @@ class UserControllerTest {
     @Test
     @DisplayName("Should return bad request when updating profile with empty name")
     void shouldReturnBadRequestWhenUpdatingProfileWithEmptyName() throws Exception {
-        UpdateUserProfileRequest invalidRequest = new UpdateUserProfileRequest(""); // empty name
+        UpdateUserProfileRequest invalidRequest = new UpdateUserProfileRequest("", CollectionVisibility.FRIENDS); // empty name
 
         mockMvc.perform(put(BASE_URL + "/me")
                 .header(USER_ID_HEADER, TEST_USER_ID)
@@ -140,7 +142,7 @@ class UserControllerTest {
     @Test
     @DisplayName("Should return unauthorized when updating profile without X-User-ID header")
     void shouldReturnUnauthorizedWhenUpdatingProfileWithoutHeader() throws Exception {
-        UpdateUserProfileRequest request = new UpdateUserProfileRequest("New Name");
+        UpdateUserProfileRequest request = new UpdateUserProfileRequest("New Name", CollectionVisibility.FRIENDS);
 
         mockMvc.perform(put(BASE_URL + "/me")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -153,7 +155,7 @@ class UserControllerTest {
     @Test
     @DisplayName("Should return unauthorized when updating profile for non-existent user")
     void shouldReturnUnauthorizedWhenUpdatingProfileForNonExistentUser() throws Exception {
-        UpdateUserProfileRequest request = new UpdateUserProfileRequest("Valid Name");
+        UpdateUserProfileRequest request = new UpdateUserProfileRequest("Valid Name", CollectionVisibility.FRIENDS);
 
         when(userService.updateUserProfile(eq(TEST_USER_ID), any(UpdateUserProfileRequest.class)))
                 .thenThrow(new InvalidCredentialsException());
@@ -204,7 +206,7 @@ class UserControllerTest {
     @DisplayName("Should accept valid name with special characters")
     void shouldAcceptValidNameWithSpecialCharacters() throws Exception {
         String nameWithSpecialChars = "José María O'Connor-Smith";
-        UpdateUserProfileRequest request = new UpdateUserProfileRequest(nameWithSpecialChars);
+        UpdateUserProfileRequest request = new UpdateUserProfileRequest(nameWithSpecialChars, CollectionVisibility.FRIENDS);
 
         User updatedUser = new User("test@example.com", nameWithSpecialChars, "hashedPassword");
         updatedUser.setId(TEST_USER_ID);
@@ -240,7 +242,7 @@ class UserControllerTest {
     @Test
     @DisplayName("Should require content-type header for update request")
     void shouldRequireContentTypeHeaderForUpdateRequest() throws Exception {
-        UpdateUserProfileRequest request = new UpdateUserProfileRequest("Valid Name");
+        UpdateUserProfileRequest request = new UpdateUserProfileRequest("Valid Name", CollectionVisibility.FRIENDS);
 
         mockMvc.perform(put(BASE_URL + "/me")
                 .header(USER_ID_HEADER, TEST_USER_ID)

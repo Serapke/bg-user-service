@@ -33,8 +33,9 @@ public class UserController {
 
     @PutMapping("/me")
     public ResponseEntity<UserProfileDto> updateCurrentUserProfile(
-            @CurrentUser Long userId,
-            @Valid @RequestBody UpdateUserProfileRequest request) {
+        @CurrentUser Long userId,
+        @Valid @RequestBody UpdateUserProfileRequest request
+    ) {
         var updatedUser = userService.updateUserProfile(userId, request);
         return ResponseEntity.ok(UserProfileDto.from(updatedUser));
     }

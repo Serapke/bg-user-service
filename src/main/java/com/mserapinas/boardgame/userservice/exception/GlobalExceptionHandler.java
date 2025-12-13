@@ -107,4 +107,11 @@ public class GlobalExceptionHandler {
         error.put(ERROR, ex.getMessage());
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
     }
+
+    @ExceptionHandler(CollectionAccessForbiddenException.class)
+    public ResponseEntity<Map<String, String>> handleCollectionAccessForbidden(CollectionAccessForbiddenException ex) {
+        Map<String, String> error = new HashMap<>();
+        error.put(ERROR, ex.getMessage());
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+    }
 }
