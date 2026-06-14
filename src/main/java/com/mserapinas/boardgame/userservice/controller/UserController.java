@@ -3,9 +3,12 @@ package com.mserapinas.boardgame.userservice.controller;
 import com.mserapinas.boardgame.userservice.annotation.CurrentUser;
 import com.mserapinas.boardgame.userservice.dto.request.UpdateUserProfileRequest;
 import com.mserapinas.boardgame.userservice.dto.response.UserProfileDto;
+import com.mserapinas.boardgame.userservice.dto.response.UserResponse;
 import com.mserapinas.boardgame.userservice.repository.UserRepository;
 import com.mserapinas.boardgame.userservice.service.UserService;
 import jakarta.validation.Valid;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
@@ -22,6 +25,13 @@ public class UserController {
     public UserController(UserService userService, UserRepository userRepository) {
         this.userService = userService;
         this.userRepository = userRepository;
+    }
+
+    @GetMapping
+    public ResponseEntity<Page<UserResponse>> getUsers(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        return ResponseEntity.ok(userService.getAllUsers(PageRequest.of(page, size)));
     }
 
     @GetMapping("/me")

@@ -5,12 +5,15 @@ import com.mserapinas.boardgame.userservice.dto.request.UpdateGameCollectionRequ
 import com.mserapinas.boardgame.userservice.dto.request.UpdateUserProfileRequest;
 import com.mserapinas.boardgame.userservice.dto.response.GameCollectionDto;
 import com.mserapinas.boardgame.userservice.dto.response.GameCollectionItemDto;
+import com.mserapinas.boardgame.userservice.dto.response.UserResponse;
 import com.mserapinas.boardgame.userservice.exception.CollectionAccessForbiddenException;
 import com.mserapinas.boardgame.userservice.exception.InvalidCredentialsException;
 import com.mserapinas.boardgame.userservice.exception.UserNotFoundException;
 import com.mserapinas.boardgame.userservice.model.*;
 import com.mserapinas.boardgame.userservice.repository.*;
 import jakarta.transaction.Transactional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.time.OffsetDateTime;
@@ -42,6 +45,10 @@ public class UserService {
         this.labelRepository = labelRepository;
         this.reviewRepository = reviewRepository;
         this.friendshipRepository = friendshipRepository;
+    }
+
+    public Page<UserResponse> getAllUsers(Pageable pageable) {
+        return userRepository.findAll(pageable).map(UserResponse::from);
     }
 
     @Transactional
