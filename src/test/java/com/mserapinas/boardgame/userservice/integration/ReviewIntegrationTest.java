@@ -358,7 +358,7 @@ class ReviewIntegrationTest extends BaseIntegrationTest {
                 .andExpect(status().isBadRequest());
 
         // Rating above maximum
-        CreateReviewRequest request2 = new CreateReviewRequest(TEST_GAME_ID, 6, "Invalid");
+        CreateReviewRequest request2 = new CreateReviewRequest(TEST_GAME_ID, 11, "Invalid");
         mockMvc.perform(post(REVIEW_BASE_URL)
                 .header(USER_ID_HEADER, userId1)
                 .with(csrf())

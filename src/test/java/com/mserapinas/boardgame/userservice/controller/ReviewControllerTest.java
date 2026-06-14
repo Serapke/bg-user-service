@@ -125,7 +125,7 @@ class ReviewControllerTest {
     @Test
     @DisplayName("Should return bad request when rating is above maximum")
     void shouldReturnBadRequestWhenRatingIsAboveMaximum() throws Exception {
-        CreateReviewRequest invalidRequest = new CreateReviewRequest(TEST_GAME_ID, 6, "Review");
+        CreateReviewRequest invalidRequest = new CreateReviewRequest(TEST_GAME_ID, 11, "Review");
 
         mockMvc.perform(post(BASE_URL)
                 .header(USER_ID_HEADER, TEST_USER_ID)
