@@ -108,31 +108,40 @@ VALUES
     ('justas@example.com', 'Justas', '$2a$10$8K1p/a0dQ2TQxa21LDbODeAmhltJL0.pCGhrtwEzMo2vREQpgS8TG'),
     ('ignas@example.com', 'Ignas', '$2a$10$8K1p/a0dQ2TQxa21LDbODeAmhltJL0.pCGhrtwEzMo2vREQpgS8TG'),
     ('paulius@example.com', 'Paulius', '$2a$10$8K1p/a0dQ2TQxa21LDbODeAmhltJL0.pCGhrtwEzMo2vREQpgS8TG')
+    ('mantas@example.com', 'Mantas', '$2a$10$8K1p/a0dQ2TQxa21LDbODeAmhltJL0.pCGhrtwEzMo2vREQpgS8TG')
+    ('darius@example.com', 'Darius', '$2a$10$8K1p/a0dQ2TQxa21LDbODeAmhltJL0.pCGhrtwEzMo2vREQpgS8TG')
+    ('mikhail@example.com', 'Mikhail', '$2a$10$8K1p/a0dQ2TQxa21LDbODeAmhltJL0.pCGhrtwEzMo2vREQpgS8TG')
+    ('viktorija@example.com', 'Viktorija', '$2a$10$8K1p/a0dQ2TQxa21LDbODeAmhltJL0.pCGhrtwEzMo2vREQpgS8TG')
+    ('ruta@example.com', 'Rūta', '$2a$10$8K1p/a0dQ2TQxa21LDbODeAmhltJL0.pCGhrtwEzMo2vREQpgS8TG')
 ON CONFLICT (email) DO NOTHING;
 
 -- User board games
+-- game IDs reference board_games in game-discovery-service:
+--   1=CATAN, 48=Ticket to Ride Legacy: Legends of the West, 85=7 Wonders, 9=Codenames
 INSERT INTO user_board_games (user_id, game_id, notes)
 SELECT u.id, v.game_id, v.notes
 FROM (
     VALUES
-        ('kipras@example.com', 1001, 'Owned'),
-        ('kipras@example.com', 1002, 'Legacy S1 complete'),
-        ('tautvydas@example.com', 2001, 'Wishlist'),
-        ('tautvydas@example.com', 2002, 'Owned')
+        ('kipras@example.com', 1, 'Owned'),
+        ('kipras@example.com', 48, 'Legacy S1 complete'),
+        ('tautvydas@example.com', 85, 'Wishlist'),
+        ('tautvydas@example.com', 9, 'Owned')
 ) AS v(email, game_id, notes)
 JOIN users u ON u.email = v.email
 ON CONFLICT (user_id, game_id) DO NOTHING;
 
 -- Reviews (users can review games they don't own)
+-- game IDs reference board_games in game-discovery-service:
+--   1=CATAN, 48=Ticket to Ride Legacy: Legends of the West, 11=Pandemic, 85=7 Wonders
 INSERT INTO reviews (user_id, game_id, rating, review_text)
 SELECT u.id, v.game_id, v.rating, v.review_text
 FROM (
     VALUES
-        ('kipras@example.com', 1001, 5, 'Amazing game! Perfect for game nights with friends.'),
-        ('kipras@example.com', 1002, 4, 'Great legacy experience, but takes commitment to finish.'),
-        ('kipras@example.com', 3001, 5, 'Best cooperative game I have ever played!'),
-        ('tautvydas@example.com', 2001, 5, 'Cannot wait to get this game. Watched many reviews and it looks fantastic!'),
-        ('tautvydas@example.com', 1001, 4, 'Solid game, though a bit too complex for casual players.')
+        ('kipras@example.com', 1, 5, 'Amazing game! Perfect for game nights with friends.'),
+        ('kipras@example.com', 48, 4, 'Great legacy experience, but takes commitment to finish.'),
+        ('kipras@example.com', 11, 5, 'Best cooperative game I have ever played!'),
+        ('tautvydas@example.com', 85, 5, 'Cannot wait to get this game. Watched many reviews and it looks fantastic!'),
+        ('tautvydas@example.com', 1, 4, 'Solid game, though a bit too complex for casual players.')
 ) AS v(email, game_id, rating, review_text)
 JOIN users u ON u.email = v.email
 ON CONFLICT (user_id, game_id) DO NOTHING;
