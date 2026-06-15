@@ -21,10 +21,16 @@ public class ReviewService {
 
     private final ReviewRepository reviewRepository;
     private final UserRepository userRepository;
+    private final RecommenderEventPublisher recommenderEventPublisher;
 
-    public ReviewService(ReviewRepository reviewRepository, UserRepository userRepository) {
+    public ReviewService(
+        ReviewRepository reviewRepository,
+        UserRepository userRepository,
+        RecommenderEventPublisher recommenderEventPublisher
+    ) {
         this.reviewRepository = reviewRepository;
         this.userRepository = userRepository;
+        this.recommenderEventPublisher = recommenderEventPublisher;
     }
 
     @Transactional
@@ -49,6 +55,7 @@ public class ReviewService {
         Review reviewWithUser = reviewRepository.findByIdWithUser(savedReview.getId())
             .orElseThrow(() -> new ReviewNotFoundException(savedReview.getId()));
 
+        recommenderEventPublisher.publishReviewChanged(userId);
         return ReviewDto.from(reviewWithUser);
     }
 
@@ -107,6 +114,7 @@ public class ReviewService {
         Review reviewWithUser = reviewRepository.findByIdWithUser(savedReview.getId())
             .orElseThrow(() -> new ReviewNotFoundException(savedReview.getId()));
 
+        recommenderEventPublisher.publishReviewChanged(userId);
         return ReviewDto.from(reviewWithUser);
     }
 
@@ -120,5 +128,6 @@ public class ReviewService {
         }
 
         reviewRepository.delete(review);
+        recommenderEventPublisher.publishReviewChanged(userId);
     }
 }

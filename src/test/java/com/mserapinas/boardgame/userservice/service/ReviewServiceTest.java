@@ -35,6 +35,9 @@ class ReviewServiceTest {
     @Mock
     private UserRepository userRepository;
 
+    @Mock
+    private RecommenderEventPublisher recommenderEventPublisher;
+
     private ReviewService reviewService;
 
     private User testUser;
@@ -45,7 +48,7 @@ class ReviewServiceTest {
 
     @BeforeEach
     void setUp() {
-        reviewService = new ReviewService(reviewRepository, userRepository);
+        reviewService = new ReviewService(reviewRepository, userRepository, recommenderEventPublisher);
 
         testUser = new User();
         testUser.setId(TEST_USER_ID);

@@ -32,19 +32,22 @@ public class UserService {
     private final LabelRepository labelRepository;
     private final ReviewRepository reviewRepository;
     private final FriendshipRepository friendshipRepository;
+    private final RecommenderEventPublisher recommenderEventPublisher;
 
     public UserService(
         UserRepository userRepository,
         UserBoardGameRepository userBoardGameRepository,
         LabelRepository labelRepository,
         ReviewRepository reviewRepository,
-        FriendshipRepository friendshipRepository
+        FriendshipRepository friendshipRepository,
+        RecommenderEventPublisher recommenderEventPublisher
     ) {
         this.userRepository = userRepository;
         this.userBoardGameRepository = userBoardGameRepository;
         this.labelRepository = labelRepository;
         this.reviewRepository = reviewRepository;
         this.friendshipRepository = friendshipRepository;
+        this.recommenderEventPublisher = recommenderEventPublisher;
     }
 
     public Page<UserResponse> getAllUsers(Pageable pageable) {
@@ -139,6 +142,7 @@ public class UserService {
         Integer userRating = reviewRepository.findByUserIdAndGameId(userId, request.gameId())
             .map(Review::getRating)
             .orElse(null);
+        recommenderEventPublisher.publishCollectionChanged(userId);
         return GameCollectionItemDto.from(savedGame, userRating);
     }
 
@@ -175,6 +179,7 @@ public class UserService {
         }
 
         userBoardGameRepository.deleteByUserIdAndGameId(userId, gameId);
+        recommenderEventPublisher.publishCollectionChanged(userId);
     }
 
     @Transactional
@@ -198,6 +203,7 @@ public class UserService {
         Integer userRating = reviewRepository.findByUserIdAndGameId(userId, gameId)
             .map(Review::getRating)
             .orElse(null);
+        recommenderEventPublisher.publishCollectionChanged(userId);
         return GameCollectionItemDto.from(savedGame, userRating);
     }
 

@@ -49,6 +49,9 @@ class UserServiceTest {
     @Mock
     private FriendshipRepository friendshipRepository;
 
+    @Mock
+    private RecommenderEventPublisher recommenderEventPublisher;
+
     private UserService userService;
 
     private User testUser;
@@ -58,7 +61,7 @@ class UserServiceTest {
 
     @BeforeEach
     void setUp() {
-        userService = new UserService(userRepository, userBoardGameRepository, labelRepository, reviewRepository, friendshipRepository);
+        userService = new UserService(userRepository, userBoardGameRepository, labelRepository, reviewRepository, friendshipRepository, recommenderEventPublisher);
 
         testUser = new User();
         testUser.setId(TEST_USER_ID);
