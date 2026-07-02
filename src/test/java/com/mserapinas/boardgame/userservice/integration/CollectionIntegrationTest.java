@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mserapinas.boardgame.userservice.dto.request.AddGameToCollectionRequest;
 import com.mserapinas.boardgame.userservice.dto.request.RegisterRequest;
 import com.mserapinas.boardgame.userservice.dto.request.UpdateGameCollectionRequest;
+import com.mserapinas.boardgame.userservice.model.CollectionStatus;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -82,7 +83,60 @@ class CollectionIntegrationTest extends BaseIntegrationTest {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.gameId").value(1001))
                 .andExpect(jsonPath("$.notes").value("Great strategy game"))
-                .andExpect(jsonPath("$.labels").isArray());
+                .andExpect(jsonPath("$.labels").isArray())
+                .andExpect(jsonPath("$.status").value("OWN"));
+    }
+
+    @Test
+    @DisplayName("Should add game as wishlist (WANT) when status provided")
+    @Transactional
+    void shouldAddGameAsWishlist() throws Exception {
+        AddGameToCollectionRequest request = new AddGameToCollectionRequest(
+            1050, "On my wishlist", Set.of(), CollectionStatus.WANT
+        );
+
+        mockMvc.perform(post(COLLECTION_BASE_URL + "/games")
+                .header(USER_ID_HEADER, userId)
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.gameId").value(1050))
+                .andExpect(jsonPath("$.status").value("WANT"));
+
+        mockMvc.perform(get(COLLECTION_BASE_URL)
+                .header(USER_ID_HEADER, userId)
+                .with(csrf()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.games[0].status").value("WANT"));
+    }
+
+    @Test
+    @DisplayName("Should update status from WANT to OWN")
+    @Transactional
+    void shouldUpdateStatusFromWantToOwn() throws Exception {
+        AddGameToCollectionRequest addRequest = new AddGameToCollectionRequest(
+            1051, "Wishlist item", Set.of(), CollectionStatus.WANT
+        );
+
+        mockMvc.perform(post(COLLECTION_BASE_URL + "/games")
+                .header(USER_ID_HEADER, userId)
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(addRequest)))
+                .andExpect(status().isCreated());
+
+        UpdateGameCollectionRequest updateRequest = new UpdateGameCollectionRequest(
+            "Now owned", null, CollectionStatus.OWN
+        );
+
+        mockMvc.perform(put(COLLECTION_BASE_URL + "/games/1051")
+                .header(USER_ID_HEADER, userId)
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(updateRequest)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("OWN"));
     }
 
     @Test

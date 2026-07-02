@@ -21,6 +21,10 @@ public class UserBoardGame {
     
     private String notes;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false)
+    private CollectionStatus status = CollectionStatus.OWN;
+
     @Column(name = "modified_at")
     private OffsetDateTime modifiedAt;
     
@@ -36,9 +40,14 @@ public class UserBoardGame {
     public UserBoardGame() {}
     
     public UserBoardGame(Long userId, Integer gameId, String notes) {
+        this(userId, gameId, notes, CollectionStatus.OWN);
+    }
+
+    public UserBoardGame(Long userId, Integer gameId, String notes, CollectionStatus status) {
         this.userId = userId;
         this.gameId = gameId;
         this.notes = notes;
+        this.status = status != null ? status : CollectionStatus.OWN;
     }
     
     public Long getId() {
@@ -71,6 +80,14 @@ public class UserBoardGame {
     
     public void setNotes(String notes) {
         this.notes = notes;
+    }
+
+    public CollectionStatus getStatus() {
+        return status;
+    }
+
+    public void setStatus(CollectionStatus status) {
+        this.status = status;
     }
     
     public OffsetDateTime getModifiedAt() {

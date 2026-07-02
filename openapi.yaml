@@ -773,6 +773,11 @@ components:
             type: string
           description: Optional list of label names (will be created if they don't exist)
           example: ["Strategy", "Wishlist"]
+        status:
+          allOf:
+            - $ref: '#/components/schemas/CollectionStatus'
+          nullable: true
+          description: Collection status; defaults to OWN when omitted
 
     UpdateGameCollectionRequest:
       type: object
@@ -789,6 +794,11 @@ components:
             type: string
           description: Updated label names
           example: ["Strategy", "Updated"]
+        status:
+          allOf:
+            - $ref: '#/components/schemas/CollectionStatus'
+          nullable: true
+          description: Updated collection status; leaves the existing status unchanged when omitted
 
     GameCollectionItemDto:
       type: object
@@ -821,6 +831,8 @@ components:
           items:
             $ref: '#/components/schemas/LabelDto'
           description: Labels associated with this game
+        status:
+          $ref: '#/components/schemas/CollectionStatus'
 
     GameCollectionDto:
       type: object
@@ -1079,6 +1091,17 @@ components:
           format: email
           description: Email address
           example: paulius@example.com
+
+    CollectionStatus:
+      type: string
+      enum:
+        - OWN
+        - WANT
+      description: |
+        Collection entry status:
+        - OWN: The user owns this game
+        - WANT: The user wants this game (wishlist)
+      example: OWN
 
     CollectionVisibility:
       type: string

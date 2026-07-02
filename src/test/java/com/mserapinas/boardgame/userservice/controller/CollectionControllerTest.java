@@ -6,6 +6,7 @@ import com.mserapinas.boardgame.userservice.dto.request.UpdateGameCollectionRequ
 import com.mserapinas.boardgame.userservice.dto.response.GameCollectionDto;
 import com.mserapinas.boardgame.userservice.dto.response.GameCollectionItemDto;
 import com.mserapinas.boardgame.userservice.dto.response.LabelDto;
+import com.mserapinas.boardgame.userservice.model.CollectionStatus;
 import com.mserapinas.boardgame.userservice.service.UserService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -56,7 +57,7 @@ class CollectionControllerTest {
     void shouldGetCurrentUserGameCollectionSuccessfully() throws Exception {
         LabelDto labelDto = new LabelDto(1L, "Strategy");
         GameCollectionItemDto gameItem = new GameCollectionItemDto(
-            1001, "Great game", 8, OffsetDateTime.now(), Set.of(labelDto)
+            1001, "Great game", 8, OffsetDateTime.now(), Set.of(labelDto), CollectionStatus.OWN
         );
         GameCollectionDto collection = new GameCollectionDto(List.of(gameItem));
 
@@ -104,7 +105,7 @@ class CollectionControllerTest {
 
         LabelDto labelDto = new LabelDto(1L, "Strategy");
         GameCollectionItemDto responseItem = new GameCollectionItemDto(
-            1001, "New game notes", null, OffsetDateTime.now(), Set.of(labelDto)
+            1001, "New game notes", null, OffsetDateTime.now(), Set.of(labelDto), CollectionStatus.OWN
         );
 
         when(userService.addGameToCollection(eq(TEST_USER_ID), any(AddGameToCollectionRequest.class))).thenReturn(responseItem);
@@ -180,7 +181,7 @@ class CollectionControllerTest {
 
         LabelDto labelDto = new LabelDto(1L, "Updated");
         GameCollectionItemDto responseItem = new GameCollectionItemDto(
-            gameId, "Updated notes", 7, OffsetDateTime.now(), Set.of(labelDto)
+            gameId, "Updated notes", 7, OffsetDateTime.now(), Set.of(labelDto), CollectionStatus.OWN
         );
 
         when(userService.updateGameInCollection(eq(TEST_USER_ID), eq(gameId), any(UpdateGameCollectionRequest.class)))
@@ -339,7 +340,7 @@ class CollectionControllerTest {
 
         LabelDto labelDto = new LabelDto(1L, "Default");
         GameCollectionItemDto responseItem = new GameCollectionItemDto(
-            1001, null, null, OffsetDateTime.now(), Set.of(labelDto)
+            1001, null, null, OffsetDateTime.now(), Set.of(labelDto), CollectionStatus.WANT
         );
 
         when(userService.addGameToCollection(eq(TEST_USER_ID), any(AddGameToCollectionRequest.class))).thenReturn(responseItem);
@@ -362,7 +363,7 @@ class CollectionControllerTest {
         );
 
         GameCollectionItemDto responseItem = new GameCollectionItemDto(
-            gameId, null, null, OffsetDateTime.now(), Set.of()
+            gameId, null, null, OffsetDateTime.now(), Set.of(), CollectionStatus.OWN
         );
 
         when(userService.updateGameInCollection(eq(TEST_USER_ID), eq(gameId), any(UpdateGameCollectionRequest.class)))

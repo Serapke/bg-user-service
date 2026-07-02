@@ -1,5 +1,6 @@
 package com.mserapinas.boardgame.userservice.dto.response;
 
+import com.mserapinas.boardgame.userservice.model.CollectionStatus;
 import com.mserapinas.boardgame.userservice.model.UserBoardGame;
 
 import java.time.OffsetDateTime;
@@ -11,7 +12,8 @@ public record GameCollectionItemDto(
     String notes,
     Integer userRating,
     OffsetDateTime modifiedAt,
-    Set<LabelDto> labels
+    Set<LabelDto> labels,
+    CollectionStatus status
 ) {
     public static GameCollectionItemDto from(UserBoardGame userBoardGame, Integer userRating) {
         Set<LabelDto> labelDtos = userBoardGame.getLabels() != null ?
@@ -25,7 +27,8 @@ public record GameCollectionItemDto(
             userBoardGame.getNotes(),
             userRating,
             userBoardGame.getModifiedAt(),
-            labelDtos
+            labelDtos,
+            userBoardGame.getStatus()
         );
     }
 }

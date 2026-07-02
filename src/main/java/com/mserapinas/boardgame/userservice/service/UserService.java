@@ -129,7 +129,8 @@ public class UserService {
         UserBoardGame userBoardGame = new UserBoardGame(
             userId,
             request.gameId(),
-            request.notes()
+            request.notes(),
+            request.status()
         );
         userBoardGame.setModifiedAt(OffsetDateTime.now());
 
@@ -193,6 +194,10 @@ public class UserService {
 
         userBoardGame.setNotes(request.notes());
         userBoardGame.setModifiedAt(OffsetDateTime.now());
+
+        if (request.status() != null) {
+            userBoardGame.setStatus(request.status());
+        }
 
         if (request.labelNames() != null) {
             Set<Label> labels = processLabels(userId, request.labelNames());

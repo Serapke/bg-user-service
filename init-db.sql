@@ -45,6 +45,20 @@ CREATE TABLE IF NOT EXISTS user_board_games (
     CONSTRAINT uq_ubg_user_game UNIQUE (user_id, game_id)
 );
 
+-- Add status column if it doesn't exist
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name='user_board_games' AND column_name='status'
+    ) THEN
+        ALTER TABLE user_board_games ADD COLUMN status VARCHAR(50);
+        UPDATE user_board_games SET status = 'OWN' WHERE status IS NULL;
+        ALTER TABLE user_board_games ALTER COLUMN status SET NOT NULL;
+        ALTER TABLE user_board_games ALTER COLUMN status SET DEFAULT 'OWN';
+    END IF;
+END $$;
+
 CREATE TABLE IF NOT EXISTS user_board_game_labels (
     user_board_game_id INTEGER NOT NULL,
     label_id INTEGER NOT NULL,
@@ -118,15 +132,15 @@ ON CONFLICT (email) DO NOTHING;
 -- User board games
 -- game IDs reference board_games in game-discovery-service:
 --   1=CATAN, 48=Ticket to Ride Legacy: Legends of the West, 85=7 Wonders, 9=Codenames
-INSERT INTO user_board_games (user_id, game_id, notes)
-SELECT u.id, v.game_id, v.notes
+INSERT INTO user_board_games (user_id, game_id, notes, status)
+SELECT u.id, v.game_id, v.notes, v.status
 FROM (
     VALUES
-        ('kipras@example.com', 1, 'Owned'),
-        ('kipras@example.com', 48, 'Legacy S1 complete'),
-        ('tautvydas@example.com', 85, 'Wishlist'),
-        ('tautvydas@example.com', 9, 'Owned')
-) AS v(email, game_id, notes)
+        ('kipras@example.com', 1, 'Owned', 'OWN'),
+        ('kipras@example.com', 48, 'Legacy S1 complete', 'OWN'),
+        ('tautvydas@example.com', 85, 'Wishlist', 'WANT'),
+        ('tautvydas@example.com', 9, 'Owned', 'OWN')
+) AS v(email, game_id, notes, status)
 JOIN users u ON u.email = v.email
 ON CONFLICT (user_id, game_id) DO NOTHING;
 
