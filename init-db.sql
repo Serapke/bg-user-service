@@ -113,6 +113,43 @@ CREATE TABLE IF NOT EXISTS friendships (
 CREATE INDEX IF NOT EXISTS idx_friendships_friend_id ON friendships(friend_id);
 CREATE INDEX IF NOT EXISTS idx_friendships_user_id ON friendships(user_id);
 
+CREATE TABLE IF NOT EXISTS game_plays (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL,
+    game_id INTEGER NOT NULL,
+    played_at DATE NOT NULL,
+    times_played INTEGER NOT NULL DEFAULT 1 CHECK (times_played >= 1),
+    duration_minutes INTEGER CHECK (duration_minutes > 0),
+    notes TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_game_play_user
+        FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_game_plays_user_game ON game_plays(user_id, game_id);
+CREATE INDEX IF NOT EXISTS idx_game_plays_user_played_at ON game_plays(user_id, played_at DESC);
+
+CREATE TABLE IF NOT EXISTS game_play_players (
+    game_play_id INTEGER NOT NULL,
+    player_id INTEGER NOT NULL,
+    PRIMARY KEY(game_play_id, player_id),
+    CONSTRAINT fk_gpp_game_play
+        FOREIGN KEY(game_play_id) REFERENCES game_plays(id) ON DELETE CASCADE,
+    CONSTRAINT fk_gpp_player
+        FOREIGN KEY(player_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS game_play_winners (
+    game_play_id INTEGER NOT NULL,
+    game_index INTEGER NOT NULL,
+    winner_player_id INTEGER,
+    PRIMARY KEY(game_play_id, game_index),
+    CONSTRAINT fk_gpw_game_play
+        FOREIGN KEY(game_play_id) REFERENCES game_plays(id) ON DELETE CASCADE,
+    CONSTRAINT fk_gpw_winner
+        FOREIGN KEY(winner_player_id) REFERENCES users(id) ON DELETE SET NULL
+);
+
 -- Mock seed data
 -- Note: Using BCrypt hash for password "Password123!"
 INSERT INTO users (email, name, password)

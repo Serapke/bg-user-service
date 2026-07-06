@@ -114,4 +114,18 @@ public class GlobalExceptionHandler {
         error.put(ERROR, ex.getMessage());
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
     }
+
+    @ExceptionHandler(GamePlayNotFoundException.class)
+    public ResponseEntity<Map<String, String>> handleGamePlayNotFound(GamePlayNotFoundException ex) {
+        Map<String, String> error = new HashMap<>();
+        error.put(ERROR, ex.getMessage());
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+    }
+
+    @ExceptionHandler(InvalidWinnerException.class)
+    public ResponseEntity<Map<String, String>> handleInvalidWinner(InvalidWinnerException ex) {
+        Map<String, String> error = new HashMap<>();
+        error.put(ERROR, ex.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+    }
 }
