@@ -22,4 +22,10 @@ public interface GamePlayRepository extends JpaRepository<GamePlay, Long> {
            "LEFT JOIN FETCH gp.players " +
            "WHERE gp.id = :id")
     Optional<GamePlay> findByIdWithAssociations(@Param("id") Long id);
+
+    @Query("SELECT DISTINCT gp FROM GamePlay gp " +
+           "LEFT JOIN FETCH gp.players " +
+           "WHERE gp.id IN :ids " +
+           "ORDER BY gp.playedAt DESC, gp.id DESC")
+    List<GamePlay> findByIds(@Param("ids") List<Long> ids);
 }

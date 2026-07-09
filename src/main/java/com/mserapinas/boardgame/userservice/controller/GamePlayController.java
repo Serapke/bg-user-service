@@ -37,4 +37,10 @@ public class GamePlayController {
             @RequestParam Integer gameId) {
         return ResponseEntity.ok(gamePlayService.getPlaysForGame(userId, gameId));
     }
+
+    @GetMapping("/batch")
+    public ResponseEntity<List<GamePlayDto>> getPlaysByIds(
+            @RequestParam List<Long> ids) {
+        return ResponseEntity.ok(gamePlayService.getPlaysByIds(ids));
+    }
 }

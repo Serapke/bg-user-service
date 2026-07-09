@@ -94,4 +94,11 @@ public class GamePlayService {
             .map(GamePlayDto::from)
             .toList();
     }
+
+    public List<GamePlayDto> getPlaysByIds(List<Long> ids) {
+        if (ids.isEmpty()) return List.of();
+        return gamePlayRepository.findByIds(ids).stream()
+            .map(GamePlayDto::from)
+            .toList();
+    }
 }
