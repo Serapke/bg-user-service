@@ -122,6 +122,13 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
     }
 
+    @ExceptionHandler(UnauthorizedGamePlayAccessException.class)
+    public ResponseEntity<Map<String, String>> handleUnauthorizedGamePlayAccess(UnauthorizedGamePlayAccessException ex) {
+        Map<String, String> error = new HashMap<>();
+        error.put(ERROR, ex.getMessage());
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+    }
+
     @ExceptionHandler(InvalidWinnerException.class)
     public ResponseEntity<Map<String, String>> handleInvalidWinner(InvalidWinnerException ex) {
         Map<String, String> error = new HashMap<>();

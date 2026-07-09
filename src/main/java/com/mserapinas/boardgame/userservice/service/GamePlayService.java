@@ -1,9 +1,11 @@
 package com.mserapinas.boardgame.userservice.service;
 
 import com.mserapinas.boardgame.userservice.dto.request.CreateGamePlayRequest;
+import com.mserapinas.boardgame.userservice.dto.request.UpdateGamePlayRequest;
 import com.mserapinas.boardgame.userservice.dto.response.GamePlayDto;
 import com.mserapinas.boardgame.userservice.exception.GamePlayNotFoundException;
 import com.mserapinas.boardgame.userservice.exception.InvalidWinnerException;
+import com.mserapinas.boardgame.userservice.exception.UnauthorizedGamePlayAccessException;
 import com.mserapinas.boardgame.userservice.model.GamePlay;
 import com.mserapinas.boardgame.userservice.model.GamePlayWinner;
 import com.mserapinas.boardgame.userservice.model.User;
@@ -100,5 +102,69 @@ public class GamePlayService {
         return gamePlayRepository.findByIds(ids).stream()
             .map(GamePlayDto::from)
             .toList();
+    }
+
+    @Transactional
+    public GamePlayDto updateGamePlay(Long userId, Long playId, UpdateGamePlayRequest request) {
+        GamePlay gp = gamePlayRepository.findByIdWithAssociations(playId)
+            .orElseThrow(() -> new GamePlayNotFoundException(playId));
+
+        if (!gp.getLogger().getId().equals(userId)) {
+            throw new UnauthorizedGamePlayAccessException(playId, userId);
+        }
+
+        Set<User> players = new HashSet<>();
+        if (request.playerIds() != null && !request.playerIds().isEmpty()) {
+            players.addAll(userRepository.findAllById(request.playerIds()));
+            if (players.size() != request.playerIds().size()) {
+                throw new IllegalArgumentException("One or more player IDs are invalid");
+            }
+        }
+
+        List<Long> winnerIds = request.winnerPlayerIds() == null ? List.of() : request.winnerPlayerIds();
+        if (!winnerIds.isEmpty() && winnerIds.size() != request.timesPlayed()) {
+            throw new InvalidWinnerException("Winner count must match times played");
+        }
+
+        Map<Long, User> playersById = players.stream()
+            .collect(Collectors.toMap(User::getId, Function.identity()));
+
+        gp.setPlayedAt(request.playedAt());
+        gp.setTimesPlayed(request.timesPlayed());
+        gp.setDurationMinutes(request.durationMinutes());
+        gp.setPlayers(players);
+        gp.setNotes(request.notes());
+
+        gp.getWinners().clear();
+        for (int i = 0; i < winnerIds.size(); i++) {
+            Long winnerId = winnerIds.get(i);
+            User winner = null;
+            if (winnerId != null) {
+                winner = playersById.get(winnerId);
+                if (winner == null) {
+                    throw new InvalidWinnerException("Winner must be one of the players who played");
+                }
+            }
+            gp.getWinners().add(new GamePlayWinner(gp, i, winner));
+        }
+
+        gamePlayRepository.save(gp);
+
+        return GamePlayDto.from(
+            gamePlayRepository.findByIdWithAssociations(playId)
+                .orElseThrow(() -> new GamePlayNotFoundException(playId))
+        );
+    }
+
+    @Transactional
+    public void deleteGamePlay(Long userId, Long playId) {
+        GamePlay gp = gamePlayRepository.findByIdWithAssociations(playId)
+            .orElseThrow(() -> new GamePlayNotFoundException(playId));
+
+        if (!gp.getLogger().getId().equals(userId)) {
+            throw new UnauthorizedGamePlayAccessException(playId, userId);
+        }
+
+        gamePlayRepository.deleteById(playId);
     }
 }

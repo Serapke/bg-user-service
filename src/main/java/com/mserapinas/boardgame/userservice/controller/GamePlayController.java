@@ -2,6 +2,7 @@ package com.mserapinas.boardgame.userservice.controller;
 
 import com.mserapinas.boardgame.userservice.annotation.CurrentUser;
 import com.mserapinas.boardgame.userservice.dto.request.CreateGamePlayRequest;
+import com.mserapinas.boardgame.userservice.dto.request.UpdateGamePlayRequest;
 import com.mserapinas.boardgame.userservice.dto.response.GamePlayDto;
 import com.mserapinas.boardgame.userservice.service.GamePlayService;
 import jakarta.validation.Valid;
@@ -42,5 +43,21 @@ public class GamePlayController {
     public ResponseEntity<List<GamePlayDto>> getPlaysByIds(
             @RequestParam List<Long> ids) {
         return ResponseEntity.ok(gamePlayService.getPlaysByIds(ids));
+    }
+
+    @PutMapping("/{playId}")
+    public ResponseEntity<GamePlayDto> updateGamePlay(
+            @CurrentUser Long userId,
+            @PathVariable Long playId,
+            @Valid @RequestBody UpdateGamePlayRequest request) {
+        return ResponseEntity.ok(gamePlayService.updateGamePlay(userId, playId, request));
+    }
+
+    @DeleteMapping("/{playId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteGamePlay(
+            @CurrentUser Long userId,
+            @PathVariable Long playId) {
+        gamePlayService.deleteGamePlay(userId, playId);
     }
 }
