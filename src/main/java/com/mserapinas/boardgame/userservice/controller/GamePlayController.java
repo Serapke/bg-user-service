@@ -39,6 +39,13 @@ public class GamePlayController {
         return ResponseEntity.ok(gamePlayService.getPlaysForGame(userId, gameId));
     }
 
+    @GetMapping("/recent-games")
+    public ResponseEntity<List<GamePlayDto>> getRecentGames(
+            @CurrentUser Long userId,
+            @RequestParam(defaultValue = "10") int limit) {
+        return ResponseEntity.ok(gamePlayService.getRecentGames(userId, limit));
+    }
+
     @GetMapping("/batch")
     public ResponseEntity<List<GamePlayDto>> getPlaysByIds(
             @RequestParam List<Long> ids) {

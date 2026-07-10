@@ -14,8 +14,11 @@ import com.mserapinas.boardgame.userservice.repository.UserRepository;
 import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
 
+import org.springframework.data.domain.PageRequest;
+
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -93,6 +96,22 @@ public class GamePlayService {
 
     public List<GamePlayDto> getPlaysForGame(Long userId, Integer gameId) {
         return gamePlayRepository.findByLoggerAndGame(userId, gameId).stream()
+            .map(GamePlayDto::from)
+            .toList();
+    }
+
+    public List<GamePlayDto> getRecentGames(Long userId, int limit) {
+        return gamePlayRepository.findRecentByUser(userId, PageRequest.of(0, limit * 3))
+            .stream()
+            .collect(Collectors.toMap(
+                GamePlay::getGameId,
+                gp -> gp,
+                (existing, replacement) -> existing,
+                LinkedHashMap::new
+            ))
+            .values()
+            .stream()
+            .limit(limit)
             .map(GamePlayDto::from)
             .toList();
     }

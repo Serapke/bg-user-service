@@ -1,6 +1,7 @@
 package com.mserapinas.boardgame.userservice.repository;
 
 import com.mserapinas.boardgame.userservice.model.GamePlay;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -28,4 +29,10 @@ public interface GamePlayRepository extends JpaRepository<GamePlay, Long> {
            "WHERE gp.id IN :ids " +
            "ORDER BY gp.playedAt DESC, gp.id DESC")
     List<GamePlay> findByIds(@Param("ids") List<Long> ids);
+
+    @Query("SELECT DISTINCT gp FROM GamePlay gp " +
+           "LEFT JOIN FETCH gp.players " +
+           "WHERE gp.logger.id = :userId " +
+           "ORDER BY gp.playedAt DESC, gp.id DESC")
+    List<GamePlay> findRecentByUser(@Param("userId") Long userId, Pageable pageable);
 }
