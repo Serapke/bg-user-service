@@ -12,6 +12,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @Validated
@@ -50,6 +51,13 @@ public class GamePlayController {
     public ResponseEntity<List<GamePlayDto>> getPlaysByIds(
             @RequestParam List<Long> ids) {
         return ResponseEntity.ok(gamePlayService.getPlaysByIds(ids));
+    }
+
+    @GetMapping("/counts-this-year")
+    public ResponseEntity<Map<Integer, Integer>> getPlaysThisYear(
+            @CurrentUser Long userId,
+            @RequestParam List<Integer> gameIds) {
+        return ResponseEntity.ok(gamePlayService.getPlaysThisYearByGames(userId, gameIds));
     }
 
     @PutMapping("/{playId}")

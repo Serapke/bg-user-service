@@ -16,7 +16,9 @@ import org.springframework.stereotype.Service;
 
 import org.springframework.data.domain.PageRequest;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -173,6 +175,17 @@ public class GamePlayService {
             gamePlayRepository.findByIdWithAssociations(playId)
                 .orElseThrow(() -> new GamePlayNotFoundException(playId))
         );
+    }
+
+    public Map<Integer, Integer> getPlaysThisYearByGames(Long userId, List<Integer> gameIds) {
+        if (gameIds.isEmpty()) return Map.of();
+        int year = LocalDate.now().getYear();
+        List<Object[]> rows = gamePlayRepository.sumTimesPlayedByUserAndGamesAndYear(userId, gameIds, year);
+        Map<Integer, Integer> result = new HashMap<>();
+        for (Object[] row : rows) {
+            result.put((Integer) row[0], ((Number) row[1]).intValue());
+        }
+        return result;
     }
 
     @Transactional

@@ -8,6 +8,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Repository
@@ -35,4 +36,14 @@ public interface GamePlayRepository extends JpaRepository<GamePlay, Long> {
            "WHERE gp.logger.id = :userId " +
            "ORDER BY gp.playedAt DESC, gp.id DESC")
     List<GamePlay> findRecentByUser(@Param("userId") Long userId, Pageable pageable);
+
+    @Query("SELECT gp.gameId, SUM(gp.timesPlayed) FROM GamePlay gp " +
+           "WHERE gp.logger.id = :userId " +
+           "AND gp.gameId IN :gameIds " +
+           "AND YEAR(gp.playedAt) = :year " +
+           "GROUP BY gp.gameId")
+    List<Object[]> sumTimesPlayedByUserAndGamesAndYear(
+            @Param("userId") Long userId,
+            @Param("gameIds") List<Integer> gameIds,
+            @Param("year") int year);
 }
