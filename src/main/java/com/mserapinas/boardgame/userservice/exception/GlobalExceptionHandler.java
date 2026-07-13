@@ -135,4 +135,18 @@ public class GlobalExceptionHandler {
         error.put(ERROR, ex.getMessage());
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
     }
+
+    @ExceptionHandler(PlayerGroupNotFoundException.class)
+    public ResponseEntity<Map<String, String>> handlePlayerGroupNotFound(PlayerGroupNotFoundException ex) {
+        Map<String, String> error = new HashMap<>();
+        error.put(ERROR, ex.getMessage());
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+    }
+
+    @ExceptionHandler(PlayerGroupAccessForbiddenException.class)
+    public ResponseEntity<Map<String, String>> handlePlayerGroupAccessForbidden(PlayerGroupAccessForbiddenException ex) {
+        Map<String, String> error = new HashMap<>();
+        error.put(ERROR, ex.getMessage());
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+    }
 }

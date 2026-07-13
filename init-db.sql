@@ -150,6 +150,25 @@ CREATE TABLE IF NOT EXISTS game_play_winners (
         FOREIGN KEY(winner_player_id) REFERENCES users(id) ON DELETE SET NULL
 );
 
+CREATE TABLE IF NOT EXISTS player_groups (
+    id SERIAL PRIMARY KEY,
+    creator_id INTEGER NOT NULL,
+    name VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_player_group_creator FOREIGN KEY(creator_id) REFERENCES users(id) ON DELETE CASCADE,
+    CONSTRAINT uq_player_groups_creator_name UNIQUE (creator_id, name)
+);
+
+CREATE INDEX IF NOT EXISTS idx_player_groups_creator_id ON player_groups(creator_id);
+
+CREATE TABLE IF NOT EXISTS player_group_members (
+    player_group_id INTEGER NOT NULL,
+    user_id INTEGER NOT NULL,
+    PRIMARY KEY(player_group_id, user_id),
+    CONSTRAINT fk_pgm_group FOREIGN KEY(player_group_id) REFERENCES player_groups(id) ON DELETE CASCADE,
+    CONSTRAINT fk_pgm_user  FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
 -- Mock seed data
 -- Note: Using BCrypt hash for password "Password123!"
 INSERT INTO users (email, name, password)
