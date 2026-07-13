@@ -51,7 +51,7 @@ public class GamePlayService {
             }
         }
 
-        List<Long> winnerIds = request.winnerPlayerIds() == null ? List.of() : request.winnerPlayerIds();
+        List<List<Long>> winnerIds = request.winnerPlayerIds() == null ? List.of() : request.winnerPlayerIds();
         if (!winnerIds.isEmpty() && winnerIds.size() != request.timesPlayed()) {
             throw new InvalidWinnerException(
                 "Winner count must match times played");
@@ -74,16 +74,17 @@ public class GamePlayService {
         if (!winnerIds.isEmpty()) {
             List<GamePlayWinner> winners = new ArrayList<>();
             for (int i = 0; i < winnerIds.size(); i++) {
-                Long winnerId = winnerIds.get(i);
-                User winner = null;
-                if (winnerId != null) {
-                    winner = playersById.get(winnerId);
+                List<Long> gameWinners = winnerIds.get(i);
+                if (gameWinners == null) continue;
+                for (Long winnerId : gameWinners) {
+                    if (winnerId == null) continue;
+                    User winner = playersById.get(winnerId);
                     if (winner == null) {
                         throw new InvalidWinnerException(
                             "Winner must be one of the players who played");
                     }
+                    winners.add(new GamePlayWinner(saved, i, winner));
                 }
-                winners.add(new GamePlayWinner(saved, i, winner));
             }
             saved.setWinners(winners);
             saved = gamePlayRepository.save(saved);
@@ -142,7 +143,7 @@ public class GamePlayService {
             }
         }
 
-        List<Long> winnerIds = request.winnerPlayerIds() == null ? List.of() : request.winnerPlayerIds();
+        List<List<Long>> winnerIds = request.winnerPlayerIds() == null ? List.of() : request.winnerPlayerIds();
         if (!winnerIds.isEmpty() && winnerIds.size() != request.timesPlayed()) {
             throw new InvalidWinnerException("Winner count must match times played");
         }
@@ -158,15 +159,16 @@ public class GamePlayService {
 
         gp.getWinners().clear();
         for (int i = 0; i < winnerIds.size(); i++) {
-            Long winnerId = winnerIds.get(i);
-            User winner = null;
-            if (winnerId != null) {
-                winner = playersById.get(winnerId);
+            List<Long> gameWinners = winnerIds.get(i);
+            if (gameWinners == null) continue;
+            for (Long winnerId : gameWinners) {
+                if (winnerId == null) continue;
+                User winner = playersById.get(winnerId);
                 if (winner == null) {
                     throw new InvalidWinnerException("Winner must be one of the players who played");
                 }
+                gp.getWinners().add(new GamePlayWinner(gp, i, winner));
             }
-            gp.getWinners().add(new GamePlayWinner(gp, i, winner));
         }
 
         gamePlayRepository.save(gp);

@@ -140,15 +140,17 @@ CREATE TABLE IF NOT EXISTS game_play_players (
 );
 
 CREATE TABLE IF NOT EXISTS game_play_winners (
+    id SERIAL PRIMARY KEY,
     game_play_id INTEGER NOT NULL,
     game_index INTEGER NOT NULL,
     winner_player_id INTEGER,
-    PRIMARY KEY(game_play_id, game_index),
     CONSTRAINT fk_gpw_game_play
         FOREIGN KEY(game_play_id) REFERENCES game_plays(id) ON DELETE CASCADE,
     CONSTRAINT fk_gpw_winner
         FOREIGN KEY(winner_player_id) REFERENCES users(id) ON DELETE SET NULL
 );
+
+CREATE INDEX IF NOT EXISTS idx_gpw_play_index ON game_play_winners(game_play_id, game_index);
 
 CREATE TABLE IF NOT EXISTS player_groups (
     id SERIAL PRIMARY KEY,

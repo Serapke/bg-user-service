@@ -6,7 +6,10 @@ import com.mserapinas.boardgame.userservice.model.User;
 
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 public record GamePlayDto(
     Long id,
@@ -16,7 +19,7 @@ public record GamePlayDto(
     Integer timesPlayed,
     Integer durationMinutes,
     List<PlayerRef> players,
-    List<PlayerRef> winners,
+    List<List<PlayerRef>> winners,
     String notes,
     OffsetDateTime createdAt
 ) {
@@ -27,10 +30,17 @@ public record GamePlayDto(
     }
 
     public static GamePlayDto from(GamePlay gp) {
-        List<PlayerRef> winners = gp.getWinnersOrdered().stream()
-            .map(GamePlayWinner::getWinner)
-            .map(u -> u == null ? null : PlayerRef.from(u))
-            .toList();
+        Map<Integer, List<PlayerRef>> byIndex = new LinkedHashMap<>();
+        for (GamePlayWinner w : gp.getWinnersOrdered()) {
+            byIndex
+                .computeIfAbsent(w.getGameIndex(), k -> new ArrayList<>())
+                .add(w.getWinner() == null ? null : PlayerRef.from(w.getWinner()));
+        }
+
+        List<List<PlayerRef>> winners = new ArrayList<>();
+        for (int i = 0; i < gp.getTimesPlayed(); i++) {
+            winners.add(byIndex.getOrDefault(i, List.of()));
+        }
 
         return new GamePlayDto(
             gp.getId(),

@@ -23,7 +23,7 @@ public record CreateGamePlayRequest(
 
     Set<Long> playerIds,
 
-    List<Long> winnerPlayerIds,
+    List<List<Long>> winnerPlayerIds,
 
     @Size(max = 2000, message = "Notes cannot exceed 2000 characters")
     String notes
