@@ -16,7 +16,6 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 
@@ -56,7 +55,7 @@ class GamePlayControllerTest {
             2,
             90,
             List.of(kipras),
-            Arrays.asList(kipras, null),
+            List.of(List.of(kipras), List.of()),
             "Fun session",
             OffsetDateTime.now()
         );
@@ -66,7 +65,7 @@ class GamePlayControllerTest {
     @DisplayName("Should create game play successfully")
     void shouldCreateGamePlaySuccessfully() throws Exception {
         CreateGamePlayRequest request = new CreateGamePlayRequest(
-            TEST_GAME_ID, LocalDate.of(2026, 7, 6), 2, 90, Set.of(2L), Arrays.asList(2L, null), "Fun session"
+            TEST_GAME_ID, LocalDate.of(2026, 7, 6), 2, 90, Set.of(2L), List.of(List.of(2L), List.of()), "Fun session"
         );
 
         when(gamePlayService.createGamePlay(eq(TEST_USER_ID), any(CreateGamePlayRequest.class)))
@@ -80,8 +79,8 @@ class GamePlayControllerTest {
                 .andExpect(jsonPath("$.id").value(TEST_PLAY_ID))
                 .andExpect(jsonPath("$.gameId").value(TEST_GAME_ID))
                 .andExpect(jsonPath("$.timesPlayed").value(2))
-                .andExpect(jsonPath("$.winners[0].id").value(2))
-                .andExpect(jsonPath("$.winners[1]").doesNotExist());
+                .andExpect(jsonPath("$.winners[0][0].id").value(2))
+                .andExpect(jsonPath("$.winners[1]").isEmpty());
 
         verify(gamePlayService).createGamePlay(eq(TEST_USER_ID), any(CreateGamePlayRequest.class));
     }
@@ -122,7 +121,7 @@ class GamePlayControllerTest {
     @DisplayName("Should return bad request when winner not among players")
     void shouldReturnBadRequestWhenInvalidWinner() throws Exception {
         CreateGamePlayRequest request = new CreateGamePlayRequest(
-            TEST_GAME_ID, LocalDate.now(), 1, null, Set.of(2L), List.of(999L), null
+            TEST_GAME_ID, LocalDate.now(), 1, null, Set.of(2L), List.of(List.of(999L)), null
         );
 
         when(gamePlayService.createGamePlay(eq(TEST_USER_ID), any(CreateGamePlayRequest.class)))

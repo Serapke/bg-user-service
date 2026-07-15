@@ -84,15 +84,15 @@ class CollectionIntegrationTest extends BaseIntegrationTest {
                 .andExpect(jsonPath("$.gameId").value(1001))
                 .andExpect(jsonPath("$.notes").value("Great strategy game"))
                 .andExpect(jsonPath("$.labels").isArray())
-                .andExpect(jsonPath("$.status").value("OWN"));
+                .andExpect(jsonPath("$.status").value("OWNED"));
     }
 
     @Test
-    @DisplayName("Should add game as wishlist (WANT) when status provided")
+    @DisplayName("Should add game as wishlist (WANT_TO_OWN) when status provided")
     @Transactional
     void shouldAddGameAsWishlist() throws Exception {
         AddGameToCollectionRequest request = new AddGameToCollectionRequest(
-            1050, "On my wishlist", Set.of(), CollectionStatus.WANT
+            1050, "On my wishlist", Set.of(), CollectionStatus.WANT_TO_OWN
         );
 
         mockMvc.perform(post(COLLECTION_BASE_URL + "/games")
@@ -102,21 +102,21 @@ class CollectionIntegrationTest extends BaseIntegrationTest {
                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.gameId").value(1050))
-                .andExpect(jsonPath("$.status").value("WANT"));
+                .andExpect(jsonPath("$.status").value("WANT_TO_OWN"));
 
         mockMvc.perform(get(COLLECTION_BASE_URL)
                 .header(USER_ID_HEADER, userId)
                 .with(csrf()))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.games[0].status").value("WANT"));
+                .andExpect(jsonPath("$.games[0].status").value("WANT_TO_OWN"));
     }
 
     @Test
-    @DisplayName("Should update status from WANT to OWN")
+    @DisplayName("Should update status from WANT_TO_OWN to OWNED")
     @Transactional
     void shouldUpdateStatusFromWantToOwn() throws Exception {
         AddGameToCollectionRequest addRequest = new AddGameToCollectionRequest(
-            1051, "Wishlist item", Set.of(), CollectionStatus.WANT
+            1051, "Wishlist item", Set.of(), CollectionStatus.WANT_TO_OWN
         );
 
         mockMvc.perform(post(COLLECTION_BASE_URL + "/games")
@@ -127,7 +127,7 @@ class CollectionIntegrationTest extends BaseIntegrationTest {
                 .andExpect(status().isCreated());
 
         UpdateGameCollectionRequest updateRequest = new UpdateGameCollectionRequest(
-            "Now owned", null, CollectionStatus.OWN
+            "Now owned", null, CollectionStatus.OWNED
         );
 
         mockMvc.perform(put(COLLECTION_BASE_URL + "/games/1051")
@@ -136,7 +136,7 @@ class CollectionIntegrationTest extends BaseIntegrationTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(updateRequest)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("OWN"));
+                .andExpect(jsonPath("$.status").value("OWNED"));
     }
 
     @Test

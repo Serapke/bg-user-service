@@ -15,7 +15,6 @@ import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 
@@ -66,7 +65,7 @@ class GamePlayIntegrationTest extends BaseIntegrationTest {
     @Transactional
     void shouldCreateGamePlayWithPlayersAndWinners() throws Exception {
         CreateGamePlayRequest request = new CreateGamePlayRequest(
-            GAME_ID, LocalDate.of(2026, 7, 6), 2, 90, Set.of(userId2), Arrays.asList(userId2, null), "Rematch"
+            GAME_ID, LocalDate.of(2026, 7, 6), 2, 90, Set.of(userId2), List.of(List.of(userId2), List.of()), "Rematch"
         );
 
         mockMvc.perform(post(PLAYS_URL)
@@ -80,8 +79,8 @@ class GamePlayIntegrationTest extends BaseIntegrationTest {
                 .andExpect(jsonPath("$.gameId").value(GAME_ID))
                 .andExpect(jsonPath("$.timesPlayed").value(2))
                 .andExpect(jsonPath("$.durationMinutes").value(90))
-                .andExpect(jsonPath("$.winners[0].id").value(userId2))
-                .andExpect(jsonPath("$.winners[1]").doesNotExist())
+                .andExpect(jsonPath("$.winners[0][0].id").value(userId2))
+                .andExpect(jsonPath("$.winners[1]").isEmpty())
                 .andExpect(jsonPath("$.players[0].id").value(userId2));
     }
 
@@ -90,7 +89,7 @@ class GamePlayIntegrationTest extends BaseIntegrationTest {
     @Transactional
     void shouldRejectInvalidWinner() throws Exception {
         CreateGamePlayRequest request = new CreateGamePlayRequest(
-            GAME_ID, LocalDate.now(), 1, null, Set.of(userId2), List.of(99999L), null
+            GAME_ID, LocalDate.now(), 1, null, Set.of(userId2), List.of(List.of(99999L)), null
         );
 
         mockMvc.perform(post(PLAYS_URL)
@@ -106,7 +105,7 @@ class GamePlayIntegrationTest extends BaseIntegrationTest {
     @Transactional
     void shouldRejectWinnerCountMismatch() throws Exception {
         CreateGamePlayRequest request = new CreateGamePlayRequest(
-            GAME_ID, LocalDate.now(), 3, null, Set.of(userId2), List.of(userId2), null
+            GAME_ID, LocalDate.now(), 3, null, Set.of(userId2), List.of(List.of(userId2)), null
         );
 
         mockMvc.perform(post(PLAYS_URL)

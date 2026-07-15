@@ -57,7 +57,7 @@ class CollectionControllerTest {
     void shouldGetCurrentUserGameCollectionSuccessfully() throws Exception {
         LabelDto labelDto = new LabelDto(1L, "Strategy");
         GameCollectionItemDto gameItem = new GameCollectionItemDto(
-            1001, "Great game", 8, OffsetDateTime.now(), Set.of(labelDto), CollectionStatus.OWN
+            1001, "Great game", 8, OffsetDateTime.now(), Set.of(labelDto), CollectionStatus.OWNED
         );
         GameCollectionDto collection = new GameCollectionDto(List.of(gameItem));
 
@@ -105,7 +105,7 @@ class CollectionControllerTest {
 
         LabelDto labelDto = new LabelDto(1L, "Strategy");
         GameCollectionItemDto responseItem = new GameCollectionItemDto(
-            1001, "New game notes", null, OffsetDateTime.now(), Set.of(labelDto), CollectionStatus.OWN
+            1001, "New game notes", null, OffsetDateTime.now(), Set.of(labelDto), CollectionStatus.OWNED
         );
 
         when(userService.addGameToCollection(eq(TEST_USER_ID), any(AddGameToCollectionRequest.class))).thenReturn(responseItem);
@@ -181,7 +181,7 @@ class CollectionControllerTest {
 
         LabelDto labelDto = new LabelDto(1L, "Updated");
         GameCollectionItemDto responseItem = new GameCollectionItemDto(
-            gameId, "Updated notes", 7, OffsetDateTime.now(), Set.of(labelDto), CollectionStatus.OWN
+            gameId, "Updated notes", 7, OffsetDateTime.now(), Set.of(labelDto), CollectionStatus.OWNED
         );
 
         when(userService.updateGameInCollection(eq(TEST_USER_ID), eq(gameId), any(UpdateGameCollectionRequest.class)))
@@ -340,7 +340,7 @@ class CollectionControllerTest {
 
         LabelDto labelDto = new LabelDto(1L, "Default");
         GameCollectionItemDto responseItem = new GameCollectionItemDto(
-            1001, null, null, OffsetDateTime.now(), Set.of(labelDto), CollectionStatus.WANT
+            1001, null, null, OffsetDateTime.now(), Set.of(labelDto), CollectionStatus.WANT_TO_OWN
         );
 
         when(userService.addGameToCollection(eq(TEST_USER_ID), any(AddGameToCollectionRequest.class))).thenReturn(responseItem);
@@ -363,7 +363,7 @@ class CollectionControllerTest {
         );
 
         GameCollectionItemDto responseItem = new GameCollectionItemDto(
-            gameId, null, null, OffsetDateTime.now(), Set.of(), CollectionStatus.OWN
+            gameId, null, null, OffsetDateTime.now(), Set.of(), CollectionStatus.OWNED
         );
 
         when(userService.updateGameInCollection(eq(TEST_USER_ID), eq(gameId), any(UpdateGameCollectionRequest.class)))

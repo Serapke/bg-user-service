@@ -23,7 +23,7 @@ public class UserBoardGame {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
-    private CollectionStatus status = CollectionStatus.OWN;
+    private CollectionStatus status = CollectionStatus.OWNED;
 
     @Column(name = "modified_at")
     private OffsetDateTime modifiedAt;
@@ -40,14 +40,14 @@ public class UserBoardGame {
     public UserBoardGame() {}
     
     public UserBoardGame(Long userId, Integer gameId, String notes) {
-        this(userId, gameId, notes, CollectionStatus.OWN);
+        this(userId, gameId, notes, CollectionStatus.OWNED);
     }
 
     public UserBoardGame(Long userId, Integer gameId, String notes, CollectionStatus status) {
         this.userId = userId;
         this.gameId = gameId;
         this.notes = notes;
-        this.status = status != null ? status : CollectionStatus.OWN;
+        this.status = status != null ? status : CollectionStatus.OWNED;
     }
     
     public Long getId() {
